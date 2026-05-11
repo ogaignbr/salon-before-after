@@ -5,8 +5,10 @@ import PreviewPage from './pages/PreviewPage';
 import HistoryPage from './pages/HistoryPage';
 
 export default function App() {
+  const basename = import.meta.env.BASE_URL.replace(/\/$/, '');
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename || undefined}>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/capture" element={<CapturePage />} />
