@@ -3,6 +3,8 @@ import HomePage from './pages/HomePage';
 import CapturePage from './pages/CapturePage';
 import PreviewPage from './pages/PreviewPage';
 import HistoryPage from './pages/HistoryPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsPage from './pages/TermsPage';
 
 export default function App() {
   const basename = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -14,6 +16,8 @@ export default function App() {
         <Route path="/capture" element={<CapturePage />} />
         <Route path="/preview/:id" element={<PreviewPage />} />
         <Route path="/history" element={<HistoryPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
       </Routes>
     </BrowserRouter>
   );

@@ -22,6 +22,7 @@ export default function CapturePage() {
   const [showGuide, setShowGuide] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
   const [flash, setFlash] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   // Resume from an existing session (after photo only)
   useEffect(() => {
@@ -150,9 +151,46 @@ export default function CapturePage() {
             </div>
           </div>
 
+          {/* Consent area */}
+          <div className="bg-pink-50 rounded-2xl p-4 border border-pink-200 space-y-3">
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              撮影にあたり、お客様より写真撮影・データ保存について同意を得てください。
+              撮影データは本端末内にのみ保存され、外部サーバーには送信されません。
+              お客様から削除の要請があった場合は速やかに対応してください。
+            </p>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-pink-500 rounded flex-shrink-0"
+              />
+              <span className="text-[11px] text-gray-600 leading-snug">
+                お客様から撮影・データ保存の同意を得ました。
+                <button
+                  type="button"
+                  onClick={() => navigate('/privacy')}
+                  className="text-pink-400 underline ml-0.5"
+                >
+                  プライバシーポリシー
+                </button>
+                ・
+                <button
+                  type="button"
+                  onClick={() => navigate('/terms')}
+                  className="text-pink-400 underline"
+                >
+                  利用規約
+                </button>
+                に同意します。
+              </span>
+            </label>
+          </div>
+
           <button
             onClick={() => setStep('before')}
-            className="w-full py-4 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-lg text-lg active:scale-95 transition-transform animate-pulse-glow"
+            disabled={!consent}
+            className="w-full py-4 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-lg text-lg active:scale-95 transition-transform disabled:opacity-40 disabled:scale-100"
           >
             ビフォー撮影へ &#10148;
           </button>

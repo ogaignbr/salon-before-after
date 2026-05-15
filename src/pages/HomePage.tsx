@@ -59,9 +59,13 @@ export default function HomePage() {
           </button>
         </div>
 
-        {/* Bottom decoration */}
-        <div className="mt-auto pb-8 text-center animate-fade-in" style={{ animationDelay: '0.4s' }}>
+        {/* Bottom links */}
+        <div className="mt-auto pb-6 text-center animate-fade-in space-y-2" style={{ animationDelay: '0.4s' }}>
           <p className="text-xs text-pink-300 font-bold">ぴたっと撮れる。変化が伝わる。</p>
+          <div className="flex justify-center gap-3">
+            <button onClick={() => navigate('/terms')} className="text-[10px] text-pink-300 underline">利用規約</button>
+            <button onClick={() => navigate('/privacy')} className="text-[10px] text-pink-300 underline">プライバシーポリシー</button>
+          </div>
         </div>
       </div>
     );
@@ -98,6 +102,10 @@ export default function HomePage() {
       <p className="mt-6 text-sm text-pink-400 font-bold animate-fade-in" style={{ animationDelay: '0.5s' }}>
         ぴたっと撮れる。変化が伝わる。&#9829;
       </p>
+      <div className="mt-3 flex justify-center gap-3 animate-fade-in" style={{ animationDelay: '0.7s' }}>
+        <button onClick={() => navigate('/terms')} className="text-[10px] text-pink-300 underline">利用規約</button>
+        <button onClick={() => navigate('/privacy')} className="text-[10px] text-pink-300 underline">プライバシーポリシー</button>
+      </div>
     </div>
   );
 }
