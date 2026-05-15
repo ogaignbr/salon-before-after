@@ -23,8 +23,11 @@ export default function PreviewPage() {
 
   if (!session || !session.afterImage) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-white">
-        <p className="text-gray-400">読み込み中...</p>
+      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-b from-pink-100 to-white">
+        <div className="text-center">
+          <div className="text-4xl mb-3 animate-float">&#128248;</div>
+          <p className="text-pink-300 font-bold">読み込み中...</p>
+        </div>
       </div>
     );
   }
@@ -94,42 +97,49 @@ export default function PreviewPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-white flex flex-col">
+    <div className="min-h-dvh bg-gradient-to-b from-pink-100 via-pink-50 to-white flex flex-col relative overflow-hidden">
+      {/* Decorative */}
+      <div className="absolute top-20 right-3 text-pink-200 text-xl animate-sparkle">&#10022;</div>
+      <div className="absolute bottom-40 left-3 text-yellow-200 text-lg animate-sparkle" style={{ animationDelay: '1s' }}>&#9733;</div>
+
       {/* Header */}
-      <div className="flex items-center px-4 py-3 border-b">
-        <button onClick={() => navigate('/')} className="text-rose-500 font-bold text-sm">
-          ホームへ
+      <div className="flex items-center px-4 py-3 bg-white/70 backdrop-blur-sm border-b border-pink-100">
+        <button onClick={() => navigate('/')} className="text-pink-400 font-bold text-sm flex items-center gap-1">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          ホーム
         </button>
-        <h1 className="flex-1 text-center font-bold text-gray-800 text-sm">プレビュー</h1>
+        <h1 className="flex-1 text-center font-black text-pink-500 text-base">&#10024; プレビュー</h1>
         <div className="w-14" />
       </div>
 
       {/* Customer info */}
-      <div className="px-4 py-3 bg-gray-50 border-b">
-        <p className="font-bold text-gray-800">{session.customerName}</p>
-        <p className="text-xs text-gray-500">
-          {new Date(session.createdAt).toLocaleDateString('ja-JP')} ・ {session.part === 'face' ? '顔' : '体'}
+      <div className="px-4 py-3 bg-white/50 border-b border-pink-100">
+        <p className="font-black text-pink-600">{session.customerName}</p>
+        <p className="text-xs text-pink-400 font-bold">
+          {new Date(session.createdAt).toLocaleDateString('ja-JP')} ・ {session.part === 'face' ? '&#128102; 顔' : '&#128131; 体'}
         </p>
       </div>
 
       {/* Compare view */}
-      <div className="px-4 py-4">
+      <div className="px-4 py-4 animate-slide-up">
         <CompareView beforeBlob={session.beforeImage} afterBlob={session.afterImage!} />
       </div>
 
       {/* Mosaic buttons */}
-      <div className="px-4 space-y-2">
-        <p className="text-xs font-bold text-gray-500">モザイク加工</p>
+      <div className="px-4 space-y-2 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+        <p className="text-xs font-black text-pink-400">&#128064; モザイク加工</p>
         <div className="flex gap-2">
           <button
             onClick={() => setEditingMosaic('before')}
-            className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold active:bg-gray-200"
+            className="flex-1 py-2.5 rounded-2xl bg-white text-pink-500 text-sm font-black border-2 border-pink-200 active:scale-95 transition-transform"
           >
             ビフォーを編集
           </button>
           <button
             onClick={() => setEditingMosaic('after')}
-            className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold active:bg-gray-200"
+            className="flex-1 py-2.5 rounded-2xl bg-white text-pink-500 text-sm font-black border-2 border-pink-200 active:scale-95 transition-transform"
           >
             アフターを編集
           </button>
@@ -137,26 +147,26 @@ export default function PreviewPage() {
       </div>
 
       {/* Action buttons */}
-      <div className="px-4 py-6 mt-auto space-y-2">
+      <div className="px-4 py-6 mt-auto space-y-2 animate-slide-up" style={{ animationDelay: '0.2s' }}>
         <button
           onClick={handleExport}
           disabled={isExporting}
-          className="w-full py-3.5 bg-rose-500 text-white font-bold rounded-2xl shadow-lg active:bg-rose-600 transition disabled:opacity-50"
+          className="w-full py-3.5 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-lg active:scale-95 transition-transform disabled:opacity-50 animate-pulse-glow"
         >
-          {isExporting ? '書き出し中...' : '比較画像を書き出し・共有'}
+          {isExporting ? '書き出し中...' : '&#128247; 比較画像を書き出し・共有'}
         </button>
         <div className="flex gap-2">
           <button
             onClick={() => handleShareSingle(session.beforeImage, 'before')}
-            className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold active:bg-gray-200"
+            className="flex-1 py-2.5 rounded-2xl bg-white text-pink-500 text-sm font-black border-2 border-pink-200 active:scale-95 transition-transform"
           >
-            ビフォーのみ保存
+            ビフォーのみ
           </button>
           <button
             onClick={() => handleShareSingle(session.afterImage!, 'after')}
-            className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold active:bg-gray-200"
+            className="flex-1 py-2.5 rounded-2xl bg-white text-pink-500 text-sm font-black border-2 border-pink-200 active:scale-95 transition-transform"
           >
-            アフターのみ保存
+            アフターのみ
           </button>
         </div>
       </div>

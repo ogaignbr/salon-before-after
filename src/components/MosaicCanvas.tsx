@@ -131,17 +131,19 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-900">
-      <div className="flex items-center justify-between px-4 py-3 bg-gray-800 text-white">
-        <button onClick={onCancel} className="text-sm">キャンセル</button>
-        <span className="font-bold text-sm">モザイク編集</span>
-        <button onClick={handleSave} className="text-sm text-rose-400 font-bold">適用</button>
+    <div className="flex flex-col h-full bg-gradient-to-b from-gray-800 to-gray-900">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-pink-500/80 to-rose-400/80 text-white">
+        <button onClick={onCancel} className="text-sm font-bold">キャンセル</button>
+        <span className="font-black text-sm">&#128064; モザイク編集</span>
+        <button onClick={handleSave} className="text-sm text-yellow-200 font-black">適用</button>
       </div>
 
+      {/* Canvas area */}
       <div className="flex-1 flex items-center justify-center overflow-hidden p-2">
         <canvas
           ref={canvasRef}
-          className="max-w-full max-h-full touch-none"
+          className="max-w-full max-h-full touch-none rounded-xl"
           onTouchStart={handleStart}
           onTouchMove={handleMove}
           onTouchEnd={handleEnd}
@@ -152,45 +154,46 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
         />
       </div>
 
-      <div className="bg-gray-800 px-4 py-3 space-y-3">
+      {/* Controls */}
+      <div className="bg-gray-800/90 backdrop-blur px-4 py-3 space-y-3 rounded-t-2xl">
         <div className="flex gap-2">
           <button
             onClick={handleAutoDetect}
             disabled={isLoading}
-            className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold disabled:opacity-50"
+            className="flex-1 py-2 rounded-xl bg-gradient-to-r from-pink-400 to-rose-400 text-white text-sm font-black disabled:opacity-50 active:scale-95 transition-transform"
           >
-            {isLoading ? '読み込み中...' : '自動顔検出'}
+            {isLoading ? '読み込み中...' : '&#129504; 自動顔検出'}
           </button>
           <button
             onClick={handleUndo}
             disabled={history.length <= 1}
-            className="px-4 py-2 rounded-lg bg-gray-600 text-white text-sm disabled:opacity-50"
+            className="px-4 py-2 rounded-xl bg-white/10 text-white text-sm font-bold disabled:opacity-30 active:scale-95 transition-transform"
           >
-            戻す
+            &#8617; 戻す
           </button>
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-gray-400">ブラシサイズ: {brushSize}</label>
+          <label className="text-xs text-pink-300 font-bold">ブラシサイズ: {brushSize}</label>
           <input
             type="range"
             min="10"
             max="80"
             value={brushSize}
             onChange={(e) => setBrushSize(Number(e.target.value))}
-            className="w-full accent-rose-500"
+            className="w-full accent-pink-400"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-gray-400">モザイク強度: {blockSize}</label>
+          <label className="text-xs text-pink-300 font-bold">モザイク強度: {blockSize}</label>
           <input
             type="range"
             min="5"
             max="40"
             value={blockSize}
             onChange={(e) => setBlockSize(Number(e.target.value))}
-            className="w-full accent-rose-500"
+            className="w-full accent-pink-400"
           />
         </div>
       </div>
