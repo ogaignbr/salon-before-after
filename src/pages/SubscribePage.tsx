@@ -23,11 +23,12 @@ export default function SubscribePage() {
   const refreshRef = useRef(refreshSubscription);
   refreshRef.current = refreshSubscription;
 
+  // Stripe完了後: サブスク情報をポーリングで取得
   useEffect(() => {
     if (!isSuccess || !user) return;
     let cancelled = false;
     const tryRefresh = async () => {
-      for (let i = 0; i < 8; i += 1) {
+      for (let i = 0; i < 10; i += 1) {
         if (cancelled) return;
         await refreshRef.current();
         if (cancelled) return;
@@ -39,12 +40,6 @@ export default function SubscribePage() {
       cancelled = true;
     };
   }, [isSuccess, user]);
-
-  useEffect(() => {
-    if (isSuccess && hasStripeSubscription) {
-      // Subscription confirmed, no need to keep polling
-    }
-  }, [isSuccess, hasStripeSubscription]);
 
   const handleSubscribe = async () => {
     setMessage('');
@@ -66,52 +61,60 @@ export default function SubscribePage() {
     navigate('/');
   };
 
+  // ===== Stripe決済完了後の画面（ID表示） =====
   if (isSuccess) {
     return (
       <div className="min-h-dvh bg-gradient-to-b from-pink-100 via-pink-50 to-white flex items-center justify-center px-6">
         <div className="w-full max-w-sm bg-white/90 rounded-3xl shadow-xl border border-pink-100 p-6 relative">
-          <h1 className="text-2xl font-black text-pink-500 text-center">登録が完了しました</h1>
-          <p className="text-xs text-pink-400 text-center mt-2 leading-relaxed">
+          <div className="text-center mb-2">
+            <div className="text-4xl mb-1">&#127881;</div>
+            <h1 className="text-2xl font-black text-pink-500">登録が完了しました！</h1>
+          </div>
+
+          <p className="text-xs text-pink-400 text-center leading-relaxed">
             7日間は0円、8日目から月額980円が自動で発生します。<br />
             期間内に解約すれば請求は発生しません。
           </p>
 
           {loginId ? (
-            <div className="mt-6 rounded-2xl bg-pink-50 border-2 border-pink-300 p-5 text-center">
+            <div className="mt-5 rounded-2xl bg-pink-50 border-2 border-pink-300 p-5 text-center">
               <p className="text-[11px] font-bold text-pink-500">あなたのログインID</p>
               <p className="text-5xl font-black text-rose-500 tracking-[0.4em] mt-2">{loginId}</p>
-              <p className="text-[11px] text-pink-400 mt-2">初期PINは 0000 です</p>
+              <p className="text-[11px] text-pink-400 mt-2">初期PINは <span className="font-black">0000</span> です</p>
             </div>
           ) : (
-            <p className="mt-4 text-center text-xs text-pink-400">
-              ログインIDを取得中です...しばらくお待ちください。
-            </p>
+            <div className="mt-5 text-center">
+              <div className="inline-block animate-pulse text-pink-400 text-sm font-bold">
+                ログインIDを取得中...
+              </div>
+            </div>
           )}
 
-          {!hasStripeSubscription ? (
+          {!hasStripeSubscription && (
             <p className="mt-3 text-center text-[11px] text-pink-400">
               サブスクリプションの反映に少し時間がかかる場合があります。
             </p>
-          ) : null}
+          )}
 
-          <p className="text-[11px] text-rose-500 font-bold text-center mt-4 leading-relaxed">
-            このIDは再表示されません。<br />
-            必ずメモやスクリーンショットで保存してください。
-          </p>
+          <div className="mt-4 bg-rose-50 rounded-xl p-3 border border-rose-200">
+            <p className="text-[11px] text-rose-500 font-bold text-center leading-relaxed">
+              &#9888; このIDは再表示されません！<br />
+              必ずメモやスクリーンショットで保存してください。
+            </p>
+          </div>
 
           <button
             onClick={() => setShowCloseConfirm(true)}
-            className="mt-6 w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform"
+            className="mt-5 w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform"
           >
-            閉じる
+            保存しました。ログイン画面へ
           </button>
 
-          {showCloseConfirm ? (
+          {showCloseConfirm && (
             <div className="absolute inset-0 bg-black/40 rounded-3xl flex items-center justify-center px-4">
               <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-2xl">
                 <p className="text-sm font-bold text-pink-600 text-center leading-relaxed">
-                  ログインに必要なIDになります。
-                  <br />
+                  ログインに必要なIDです。<br />
                   メモやスクリーンショットは撮りましたか？
                 </p>
                 <div className="mt-5 flex gap-2">
@@ -119,7 +122,7 @@ export default function SubscribePage() {
                     onClick={() => setShowCloseConfirm(false)}
                     className="flex-1 py-2 bg-white border border-pink-300 text-pink-400 text-sm font-black rounded-xl"
                   >
-                    いいえ
+                    まだ
                   </button>
                   <button
                     onClick={onConfirmClose}
@@ -133,12 +136,13 @@ export default function SubscribePage() {
                 </p>
               </div>
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     );
   }
 
+  // ===== サブスク未登録の場合のカード登録画面 =====
   return (
     <div className="min-h-dvh bg-gradient-to-b from-pink-100 via-pink-50 to-white flex items-center justify-center px-6">
       <div className="w-full max-w-sm bg-white/90 rounded-3xl shadow-xl border border-pink-100 p-6 text-center">
