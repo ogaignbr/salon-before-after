@@ -47,3 +47,80 @@ input[type="range"] {
 .animate-subtle-pulse {
   animation: subtle-pulse 2.5s ease-in-out infinite;
 }
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes float-x {
+  0%, 100% { transform: translateX(0px); }
+  50% { transform: translateX(6px); }
+}
+
+.bg-ornament {
+  position: absolute;
+  opacity: 0.38;
+  filter: blur(0.1px);
+  animation: float-y 9.8s ease-in-out infinite;
+}
+
+.bg-ornament-circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(99, 102, 241, 0.26);
+  background: rgba(99, 102, 241, 0.09);
+}
+
+.bg-ornament-square {
+  width: 13px;
+  height: 13px;
+  border-radius: 4px;
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  transform: rotate(13deg);
+  animation-name: float-x;
+}
+
+.bg-ornament-triangle {
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 12px solid rgba(129, 140, 248, 0.18);
+}
+
+.bg-ornament-star {
+  width: 10px;
+  height: 10px;
+  background: rgba(124, 96, 255, 0.6);
+  clip-path: polygon(50% 0, 62% 36%, 100% 50%, 62% 64%, 50% 100%, 38% 64%, 0 50%, 38% 36%);
+  animation-duration: 11.5s;
+}
+
+.bg-ornament-line {
+  width: 42px;
+  height: 1px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0) 0%, rgba(129, 140, 248, 0.33) 50%, rgba(148, 163, 184, 0) 100%);
+  animation-duration: 12.5s;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bg-ornament {
+    opacity: 0.5;
+  }
+  .bg-ornament-circle {
+    border-color: rgba(167, 139, 250, 0.25);
+    background: rgba(167, 139, 250, 0.12);
+  }
+  .bg-ornament-square {
+    border-color: rgba(129, 140, 248, 0.35);
+  }
+  .bg-ornament-triangle {
+    border-bottom-color: rgba(167, 139, 250, 0.22);
+  }
+  .bg-ornament-line {
+    background: linear-gradient(90deg, rgba(51, 65, 85, 0) 0%, rgba(129, 140, 248, 0.45) 50%, rgba(51, 65, 85, 0) 100%);
+  }
+}
