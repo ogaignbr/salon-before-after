@@ -6,6 +6,7 @@ import type { SubscriptionStatus } from '../types';
 
 const NOT_CONFIGURED_MESSAGE =
   'サーバー設定が未完了のため、現在ログインできません。管理者にお問い合わせください。';
+const AUTH_BOOT_TIMEOUT_MS = 8000;
 
 type AuthState = {
   user: User | null;
@@ -105,6 +106,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     let cancelled = false;
+    const bootTimeoutId = window.setTimeout(() => {
+      if (cancelled) return;
+      console.warn('[auth] initial session check timed out');
+      setLoading(false);
+    }, AUTH_BOOT_TIMEOUT_MS);
 
     supabase.auth
       .getSession()
@@ -124,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn('[auth] getSession failed', error);
       })
       .finally(() => {
+        window.clearTimeout(bootTimeoutId);
         if (!cancelled) setLoading(false);
       });
 
@@ -149,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
+      window.clearTimeout(bootTimeoutId);
       listener.unsubscribe();
     };
   }, []);
