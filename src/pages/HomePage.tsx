@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import pitacameLogo from '../../ぴたカメロゴ.png';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -57,17 +58,13 @@ export default function HomePage() {
         </div>
 
         <div className="mb-8 mt-3 text-center animate-slide-up">
-          <div className="relative mx-auto mb-5 flex h-[78px] w-[78px] items-center justify-center rounded-full border border-indigo-100/70 bg-white/75 shadow-[0_20px_45px_-30px_rgba(86,92,255,0.65)] backdrop-blur-xl dark:border-indigo-300/15 dark:bg-slate-900/70 dark:shadow-[0_25px_45px_-30px_rgba(120,119,255,0.55)]">
-            <div className="absolute inset-2 rounded-full bg-[linear-gradient(135deg,#5f7bff_0%,#6f56ff_52%,#8a49ff_100%)] opacity-10 dark:opacity-30" />
-            <svg className="h-9 w-9 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9a2 2 0 012-2h1.1a2 2 0 001.62-.826l.56-.748A2 2 0 0112.88 5h2.24a2 2 0 011.6.8l.56.748A2 2 0 0018.9 7H20a2 2 0 012 2v7.5a2.5 2.5 0 01-2.5 2.5h-15A2.5 2.5 0 012 16.5V9a2 2 0 012-2h2z" />
-              <circle cx="12" cy="12.75" r="3.25" />
-            </svg>
-            <svg className="absolute -right-1 top-1.5 h-4 w-4 text-indigo-400 dark:text-indigo-300" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2l1.62 4.38L18 8l-4.38 1.62L12 14l-1.62-4.38L6 8l4.38-1.62L12 2z" />
-            </svg>
+          <div className="mx-auto mb-4 rounded-[16px] border border-white/70 bg-white/82 p-3 shadow-[0_20px_45px_-30px_rgba(86,92,255,0.65)] backdrop-blur-xl dark:border-indigo-300/15 dark:bg-slate-900/62 dark:shadow-[0_25px_45px_-30px_rgba(120,119,255,0.55)]">
+            <img
+              src={pitacameLogo}
+              alt="ぴたカメロゴ"
+              className="mx-auto h-auto w-full max-w-[240px] rounded-[10px]"
+            />
           </div>
-          <h1 className="text-[38px] font-black tracking-[0.08em] text-slate-900 dark:text-slate-100">ぴたカメ</h1>
           <p className="mt-1 text-[14px] font-medium text-slate-500 dark:text-slate-400">同じ角度で撮れる比較カメラ</p>
         </div>
 
