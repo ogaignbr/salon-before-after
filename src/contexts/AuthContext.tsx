@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { hashPin } from '../lib/authPin';
 import type { SubscriptionStatus } from '../types';
 
 const NOT_CONFIGURED_MESSAGE =
@@ -283,28 +282,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (currentSecretCode === nextSecretCode) return { error: '現在の暗証番号と異なる番号を設定してください。' };
 
     try {
-      const pinHash = await hashPin(nextSecretCode);
-
-      const { error: authError } = await invokeWithTimeout(
-        supabase.auth.updateUser({ password: `PIN-${nextSecretCode}` }),
+      const { data, error } = await invokeWithTimeout(
+        supabase.functions.invoke('update-secret-code', {
+          body: { nextSecretCode },
+        }),
         FUNCTION_INVOKE_TIMEOUT_MS,
       );
-      if (authError) return { error: authError.message };
 
-      const { error: profileError } = await invokeWithTimeout(
-        Promise.resolve(
-          supabase
-            .from('member_profiles')
-            .update({
-              pin_hash: pinHash,
-              must_change_pin: false,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', user.id),
-        ),
-        FUNCTION_INVOKE_TIMEOUT_MS,
-      );
-      if (profileError) return { error: profileError.message };
+      if (error || !data?.success) {
+        const message = (data?.message as string | undefined)
+          ?? error?.message
+          ?? '暗証番号の更新に失敗しました。時間をおいてもう一度お試しください。';
+        return { error: message };
+      }
 
       setNeedsPinChange(false);
       return { error: null };
