@@ -1,10 +1,23 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Supabase の環境変数が設定されていません (.env を確認してください)');
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+
+if (!isSupabaseConfigured && typeof window !== 'undefined') {
+  console.warn(
+    '[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY が設定されていません。ログインや課金機能は動作しません。',
+  );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase: SupabaseClient = createClient(
+  supabaseUrl ?? 'https://placeholder.invalid.supabase.co',
+  supabaseAnonKey ?? 'public-anon-key-placeholder',
+  {
+    auth: {
+      persistSession: isSupabaseConfigured,
+      autoRefreshToken: isSupabaseConfigured,
+    },
+  },
+);

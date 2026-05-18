@@ -1,8 +1,11 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { hashPin } from '../lib/authPin';
 import type { SubscriptionStatus } from '../types';
+
+const NOT_CONFIGURED_MESSAGE =
+  'サーバー設定が未完了のため、現在ログインできません。管理者にお問い合わせください。';
 
 type AuthState = {
   user: User | null;
@@ -89,14 +92,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchProfileAndSubscription(currentUser.id);
-      }
+    if (!isSupabaseConfigured) {
       setLoading(false);
-    });
+      return;
+    }
+
+    let cancelled = false;
+
+    supabase.auth
+      .getSession()
+      .then(async ({ data: { session } }) => {
+        if (cancelled) return;
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          try {
+            await fetchProfileAndSubscription(currentUser.id);
+          } catch (error) {
+            console.warn('[auth] failed to load profile/subscription', error);
+          }
+        }
+      })
+      .catch((error) => {
+        console.warn('[auth] getSession failed', error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
     const {
       data: { subscription: listener },
@@ -104,7 +126,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
-        await fetchProfileAndSubscription(currentUser.id);
+        try {
+          await fetchProfileAndSubscription(currentUser.id);
+        } catch (error) {
+          console.warn('[auth] failed to refresh profile/subscription', error);
+        }
       } else {
         setLoginId(null);
         setSubscription('none');
@@ -113,10 +139,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => listener.unsubscribe();
+    return () => {
+      cancelled = true;
+      listener.unsubscribe();
+    };
   }, []);
 
   const signIn = async (loginId: string, pin: string) => {
+    if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE };
+
     const { data: resolved, error: resolveError } = await supabase.functions.invoke(
       'resolve-login-id',
       { body: { loginId, pin } },
@@ -136,6 +167,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string) => {
+    if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE, loginId: null };
+
     const { error } = await supabase.auth.signUp({
       email,
       password: 'PIN-0000',
@@ -197,6 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const forceResetPin = async (loginId: string, nextPin: string, adminKey: string) => {
+    if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE, message: null };
     const { data, error } = await supabase.functions.invoke('reset-pin-admin', {
       body: { loginId, nextPin, adminKey },
     });
