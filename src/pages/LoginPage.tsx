@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { AppFrame } from '../components/AppFrame';
+import pitacameLogo from '../../ぴたカメロゴ.png';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -92,20 +93,16 @@ export default function LoginPage() {
   return (
     <AppFrame>
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center animate-slide-up">
-        {/* Logo */}
         <div className="mb-7 text-center">
-          <div className="relative mx-auto mb-4 flex h-[72px] w-[72px] items-center justify-center rounded-full border border-indigo-100/75 bg-white/80 shadow-[0_18px_34px_-24px_rgba(91,97,255,0.8)] backdrop-blur-xl dark:border-indigo-300/20 dark:bg-slate-900/55">
-            <div className="absolute inset-2 rounded-full bg-[linear-gradient(135deg,#5f7bff_0%,#6f56ff_52%,#8a49ff_100%)] opacity-10 dark:opacity-30" />
-            <svg className="h-8 w-8 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9a2 2 0 012-2h1.1a2 2 0 001.62-.826l.56-.748A2 2 0 0112.88 5h2.24a2 2 0 011.6.8l.56.748A2 2 0 0018.9 7H20a2 2 0 012 2v7.5a2.5 2.5 0 01-2.5 2.5h-15A2.5 2.5 0 012 16.5V9a2 2 0 012-2h2z" />
-              <circle cx="12" cy="12.75" r="3.25" />
-            </svg>
+          <div className="mx-auto w-fit rounded-[16px] border border-white/70 bg-white/82 p-3 shadow-[0_20px_45px_-30px_rgba(86,92,255,0.65)] backdrop-blur-xl dark:border-indigo-300/15 dark:bg-slate-900/62 dark:shadow-[0_25px_45px_-30px_rgba(120,119,255,0.55)]">
+            <img
+              src={pitacameLogo}
+              alt="ぴたカメ"
+              className="mx-auto h-auto w-full max-w-[240px] rounded-[10px]"
+            />
           </div>
-          <h1 className="text-[34px] font-black tracking-[0.08em] text-slate-900 dark:text-slate-100">ぴたカメ</h1>
-          <p className="mt-1 text-[13px] font-medium text-slate-500 dark:text-slate-400">同じ角度で撮れる比較カメラ</p>
         </div>
 
-        {/* Card */}
         <div className="rounded-[16px] border border-white/65 bg-white/75 p-6 shadow-[0_18px_36px_-28px_rgba(68,82,147,0.75)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_20px_42px_-30px_rgba(30,46,105,0.9)]">
           {!needsPinChange && !showPinChange ? (
             <form className="space-y-4" onSubmit={onLogin}>
@@ -191,7 +188,6 @@ export default function LoginPage() {
           )}
         </div>
 
-        {/* Bottom links */}
         <div className="mt-6 space-y-3 text-center animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <button
             onClick={() => navigate('/signup')}
