@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -6,8 +6,6 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const {
     user,
-    hasStripeSubscription,
-    subscription,
     signIn,
     needsPinChange,
     completeInitialPinChange,
@@ -26,12 +24,11 @@ export default function LoginPage() {
   const [newPin, setNewPin] = useState('');
   const [newPinConfirm, setNewPinConfirm] = useState('');
 
-  // Already logged in with active subscription → go to home
-  if (user && hasStripeSubscription && !needsPinChange
-    && subscription !== 'expired' && subscription !== 'canceled' && subscription !== 'past_due' && subscription !== 'none') {
-    navigate('/home', { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (user && !needsPinChange) {
+      navigate('/home', { replace: true });
+    }
+  }, [user, needsPinChange, navigate]);
 
   const isFourDigits = (value: string) => /^\d{4}$/.test(value);
 

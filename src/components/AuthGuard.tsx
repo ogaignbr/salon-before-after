@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, subscription, hasStripeSubscription, needsPinChange, loading } = useAuth();
+  const { user, needsPinChange, loading } = useAuth();
 
   if (loading) {
     return (
@@ -18,19 +18,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (needsPinChange) {
     return <Navigate to="/" replace />;
-  }
-
-  if (!hasStripeSubscription) {
-    return <Navigate to="/subscribe" replace />;
-  }
-
-  if (
-    subscription === 'expired'
-    || subscription === 'canceled'
-    || subscription === 'past_due'
-    || subscription === 'none'
-  ) {
-    return <Navigate to="/subscribe" replace />;
   }
 
   return <>{children}</>;

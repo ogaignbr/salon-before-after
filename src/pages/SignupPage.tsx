@@ -15,7 +15,7 @@ function saveCheckoutEmail(email: string) {
 
 export default function SignupPage() {
   const navigate = useNavigate();
-  const { user, hasStripeSubscription, needsPinChange, loading } = useAuth();
+  const { user, needsPinChange, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -24,12 +24,8 @@ export default function SignupPage() {
     if (loading) return;
     if (!user) return;
     if (needsPinChange) return;
-    if (hasStripeSubscription) {
-      navigate('/home', { replace: true });
-      return;
-    }
-    navigate('/subscribe', { replace: true });
-  }, [user, hasStripeSubscription, needsPinChange, loading, navigate]);
+    navigate('/home', { replace: true });
+  }, [user, needsPinChange, loading, navigate]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
