@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { signOut, user, subscription, trialDaysLeft, openCustomerPortal } = useAuth();
+  const { signOut, user, openCustomerPortal } = useAuth();
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-pink-100 via-pink-50 to-white flex flex-col items-center relative overflow-hidden">
@@ -12,12 +12,6 @@ export default function HomePage() {
       <div className="absolute top-16 right-8 text-yellow-300 text-xl animate-sparkle" style={{ animationDelay: '1s' }}>&#9733;</div>
       <div className="absolute top-32 left-10 text-purple-300 text-lg animate-sparkle" style={{ animationDelay: '0.5s' }}>&#9829;</div>
       <div className="absolute bottom-40 right-6 text-teal-300 text-2xl animate-sparkle" style={{ animationDelay: '1.5s' }}>&#10022;</div>
-
-      {subscription === 'trialing' && (
-        <div className="w-full bg-pink-400 text-white text-center py-2 text-xs font-bold">
-          無料お試し中 &#8212; 残り{trialDaysLeft}日
-        </div>
-      )}
 
       {/* Top bar */}
       <div className="w-full px-4 pt-4 flex items-center justify-between">
