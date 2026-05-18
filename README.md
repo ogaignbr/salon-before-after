@@ -1,73 +1,26 @@
-# React + TypeScript + Vite
+# ぴたカメ（salon-before-after）
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+サロン向けのビフォーアフター撮影 Web アプリです。React（Vite）+ TypeScript、バックエンドは Supabase（認証・DB・Edge Functions）、課金は Stripe と連携しています。
 
-Currently, two official plugins are available:
+## 主な機能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- 4 桁のログイン ID と 4 桁 PIN でログイン（日常のログインではメールアドレスは使いません）
+- 新規登録時はメールアドレスのみ入力 → 自動で 4 桁 ID が発行され、初期 PIN は `0000`
+- トライアル・サブスク状態に応じた画面ガードと Stripe Checkout による課金
 
-## React Compiler
+## ドキュメント
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **[SETUP_GUIDE.md](./SETUP_GUIDE.md)** — Supabase / Stripe / GitHub Pages のセットアップと環境変数
 
-## Expanding the ESLint configuration
+## 開発
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm ci
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+ルートパスは GitHub Pages 利用時、`vite.config` の `base` に合わせて調整されています。
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## ライセンス
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+リポジトリ内のライセンス表記に従ってください。

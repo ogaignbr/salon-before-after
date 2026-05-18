@@ -8,3 +8,11 @@ export interface Session {
   afterImage?: Blob;
   createdAt: Date;
 }
+
+export type SubscriptionStatus =
+  | 'trialing'
+  | 'active'
+  | 'canceled'
+  | 'past_due'
+  | 'expired'
+  | 'none';
