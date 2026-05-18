@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 .env
+.env.admin
+
+# 顧客一覧（個人情報を含むファイルのみ除外。READMEは追跡）
+customers/*.csv
+customers/*.json
 
 # Cursor / Claude local config
 .claude/

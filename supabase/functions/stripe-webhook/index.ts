@@ -28,12 +28,34 @@ Deno.serve(async (req) => {
       const userId = session.client_reference_id;
       if (!userId) break;
 
-      await supabaseAdmin.from('subscriptions').update({
+      let trialEndIso: string | null = null;
+      let currentPeriodEndIso: string | null = null;
+      let nextStatus: 'trialing' | 'active' = 'trialing';
+      if (session.subscription) {
+        try {
+          const sub = await stripe.subscriptions.retrieve(session.subscription as string);
+          if (sub.trial_end) trialEndIso = new Date(sub.trial_end * 1000).toISOString();
+          if (sub.current_period_end) {
+            currentPeriodEndIso = new Date(sub.current_period_end * 1000).toISOString();
+          }
+          nextStatus = sub.status === 'active' ? 'active' : 'trialing';
+        } catch (err) {
+          console.warn('[webhook] subscription retrieve failed', err);
+        }
+      }
+
+      const nowIso = new Date().toISOString();
+      const update: Record<string, unknown> = {
         stripe_customer_id: session.customer as string,
         stripe_subscription_id: session.subscription as string,
-        status: 'active',
-        updated_at: new Date().toISOString(),
-      }).eq('user_id', userId);
+        status: nextStatus,
+        updated_at: nowIso,
+      };
+      if (trialEndIso) update.trial_end = trialEndIso;
+      if (currentPeriodEndIso) update.current_period_end = currentPeriodEndIso;
+      if (nextStatus === 'active') update.activated_at = nowIso;
+
+      await supabaseAdmin.from('subscriptions').update(update).eq('user_id', userId);
       break;
     }
 
@@ -53,7 +75,8 @@ Deno.serve(async (req) => {
       const sub = event.data.object as Stripe.Subscription;
       const customerId = sub.customer as string;
 
-      await supabaseAdmin.from('subscriptions').update({
+      const nowIso = new Date().toISOString();
+      const update: Record<string, unknown> = {
         status:
           sub.status === 'active'
             ? 'active'
@@ -62,19 +85,44 @@ Deno.serve(async (req) => {
               : sub.status === 'past_due'
                 ? 'past_due'
                 : 'canceled',
-        current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-      }).eq('stripe_customer_id', customerId);
+        updated_at: nowIso,
+      };
+      if (sub.current_period_end) {
+        update.current_period_end = new Date(sub.current_period_end * 1000).toISOString();
+      }
+      if (sub.trial_end) {
+        update.trial_end = new Date(sub.trial_end * 1000).toISOString();
+      }
+
+      const { data: existing } = await supabaseAdmin
+        .from('subscriptions')
+        .select('activated_at, canceled_at')
+        .eq('stripe_customer_id', customerId)
+        .maybeSingle();
+
+      if (sub.status === 'active' && !existing?.activated_at) {
+        update.activated_at = nowIso;
+      }
+      if ((sub.cancel_at_period_end || sub.status === 'canceled') && !existing?.canceled_at) {
+        update.canceled_at = nowIso;
+      }
+
+      await supabaseAdmin
+        .from('subscriptions')
+        .update(update)
+        .eq('stripe_customer_id', customerId);
       break;
     }
 
     case 'customer.subscription.deleted': {
       const sub = event.data.object as Stripe.Subscription;
       const customerId = sub.customer as string;
+      const nowIso = new Date().toISOString();
 
       await supabaseAdmin.from('subscriptions').update({
         status: 'canceled',
-        updated_at: new Date().toISOString(),
+        canceled_at: nowIso,
+        updated_at: nowIso,
       }).eq('stripe_customer_id', customerId);
       break;
     }

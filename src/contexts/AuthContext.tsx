@@ -12,6 +12,7 @@ type AuthState = {
   loginId: string | null;
   subscription: SubscriptionStatus;
   trialDaysLeft: number;
+  hasStripeSubscription: boolean;
   loading: boolean;
   needsPinChange: boolean;
   signIn: (loginId: string, pin: string) => Promise<{ error: string | null }>;
@@ -27,6 +28,8 @@ type AuthState = {
     adminKey: string,
   ) => Promise<{ error: string | null; message: string | null }>;
   refreshSubscription: () => Promise<void>;
+  startCheckout: () => Promise<{ error: string | null }>;
+  openCustomerPortal: () => Promise<{ error: string | null }>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -36,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loginId, setLoginId] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionStatus>('none');
   const [trialDaysLeft, setTrialDaysLeft] = useState(0);
+  const [hasStripeSubscription, setHasStripeSubscription] = useState(false);
   const [needsPinChange, setNeedsPinChange] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -48,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single(),
       supabase
         .from('subscriptions')
-        .select('status, trial_end')
+        .select('status, trial_end, stripe_subscription_id')
         .eq('user_id', userId)
         .single(),
     ]);
@@ -64,8 +68,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!sub) {
       setSubscription('none');
       setTrialDaysLeft(0);
+      setHasStripeSubscription(false);
       return;
     }
+
+    setHasStripeSubscription(Boolean(sub.stripe_subscription_id));
 
     const trialEnd = sub.trial_end ? new Date(sub.trial_end) : null;
     const now = new Date();
@@ -136,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSubscription('none');
         setTrialDaysLeft(0);
         setNeedsPinChange(false);
+        setHasStripeSubscription(false);
       }
     });
 
@@ -203,6 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSubscription('none');
     setTrialDaysLeft(0);
     setNeedsPinChange(false);
+    setHasStripeSubscription(false);
   };
 
   const completeInitialPinChange = async (currentPin: string, nextPin: string) => {
@@ -245,6 +254,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchProfileAndSubscription(user.id);
   };
 
+  const startCheckout = async () => {
+    if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE };
+    if (!user) return { error: 'ログインが必要です。' };
+    const priceId = import.meta.env.VITE_STRIPE_PRICE_ID as string | undefined;
+    if (!priceId) return { error: 'Stripe価格IDが設定されていません。' };
+
+    const baseUrl = window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, '');
+    const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+      body: {
+        customerEmail: user.email,
+        userId: user.id,
+        priceId,
+        successUrl: `${baseUrl}/subscribe?result=success`,
+        cancelUrl: `${baseUrl}/subscribe?result=cancel`,
+      },
+    });
+    if (error || !data?.url) {
+      return { error: '決済ページの作成に失敗しました。' };
+    }
+    window.location.href = data.url as string;
+    return { error: null };
+  };
+
+  const openCustomerPortal = async () => {
+    if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE };
+    if (!user) return { error: 'ログインが必要です。' };
+
+    const baseUrl = window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, '');
+    const { data, error } = await supabase.functions.invoke('create-portal-session', {
+      body: {
+        userId: user.id,
+        returnUrl: `${baseUrl}/`,
+      },
+    });
+    if (error || !data?.url) {
+      return { error: 'お支払い管理画面を開けませんでした。' };
+    }
+    window.location.href = data.url as string;
+    return { error: null };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -252,6 +302,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginId,
         subscription,
         trialDaysLeft,
+        hasStripeSubscription,
         loading,
         needsPinChange,
         signIn,
@@ -260,6 +311,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         completeInitialPinChange,
         forceResetPin,
         refreshSubscription,
+        startCheckout,
+        openCustomerPortal,
       }}
     >
       {children}

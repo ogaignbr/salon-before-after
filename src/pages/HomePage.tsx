@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { signOut, loginId, subscription, trialDaysLeft } = useAuth();
+  const { signOut, loginId, subscription, trialDaysLeft, openCustomerPortal } = useAuth();
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-pink-100 via-pink-50 to-white flex flex-col items-center relative overflow-hidden">
@@ -68,6 +68,15 @@ export default function HomePage() {
       {/* Bottom links */}
       <div className="mt-auto pb-6 text-center animate-fade-in space-y-2" style={{ animationDelay: '0.4s' }}>
         <p className="text-xs text-pink-300 font-bold">ぴたっと撮れる。変化が伝わる。</p>
+        <button
+          onClick={async () => {
+            const result = await openCustomerPortal();
+            if (result.error) alert(result.error);
+          }}
+          className="text-xs text-pink-400 underline font-bold"
+        >
+          解約・お支払い情報を管理
+        </button>
         <div className="flex justify-center gap-3">
           <button onClick={() => navigate('/terms')} className="text-[10px] text-pink-300 underline">利用規約</button>
           <button onClick={() => navigate('/privacy')} className="text-[10px] text-pink-300 underline">プライバシーポリシー</button>

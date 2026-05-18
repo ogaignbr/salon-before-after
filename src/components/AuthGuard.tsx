@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, subscription, needsPinChange, loading } = useAuth();
+  const { user, subscription, hasStripeSubscription, needsPinChange, loading } = useAuth();
 
   if (loading) {
     return (
@@ -18,6 +18,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (needsPinChange) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!hasStripeSubscription) {
+    return <Navigate to="/subscribe" replace />;
   }
 
   if (
