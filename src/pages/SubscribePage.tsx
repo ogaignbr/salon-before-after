@@ -2,6 +2,56 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+const CHECKOUT_LOGIN_ID_KEY = 'subscribe:checkout-login-id';
+const CHECKOUT_LOGIN_ID_SAVED_AT_KEY = 'subscribe:checkout-login-id-saved-at';
+const CHECKOUT_LOGIN_ID_TTL_MS = 1000 * 60 * 60 * 24;
+
+function saveCheckoutLoginId(loginId: string) {
+  try {
+    localStorage.setItem(CHECKOUT_LOGIN_ID_KEY, loginId);
+    localStorage.setItem(CHECKOUT_LOGIN_ID_SAVED_AT_KEY, String(Date.now()));
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function clearSavedCheckoutLoginId() {
+  try {
+    localStorage.removeItem(CHECKOUT_LOGIN_ID_KEY);
+    localStorage.removeItem(CHECKOUT_LOGIN_ID_SAVED_AT_KEY);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function readSavedCheckoutLoginId() {
+  try {
+    const id = localStorage.getItem(CHECKOUT_LOGIN_ID_KEY);
+    const savedAtRaw = localStorage.getItem(CHECKOUT_LOGIN_ID_SAVED_AT_KEY);
+    if (!id || !savedAtRaw) return null;
+    const savedAt = Number(savedAtRaw);
+    if (!Number.isFinite(savedAt) || Date.now() - savedAt > CHECKOUT_LOGIN_ID_TTL_MS) {
+      clearSavedCheckoutLoginId();
+      return null;
+    }
+    return id;
+  } catch {
+    return null;
+  }
+}
+
+function checkoutStageLabel(progress: number) {
+  if (progress < 35) return '通信確認中';
+  if (progress < 75) return '決済ページ作成中';
+  return '決済ページへ移動中';
+}
+
+function loginIdStageLabel(progress: number) {
+  if (progress < 40) return 'ログインID確認中';
+  if (progress < 80) return 'ID反映待ち';
+  return '表示準備中';
+}
+
 export default function SubscribePage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -15,13 +65,65 @@ export default function SubscribePage() {
     startCheckout,
   } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [checkoutProgress, setCheckoutProgress] = useState(0);
+  const [loginIdProgress, setLoginIdProgress] = useState(0);
+  const [displayLoginId, setDisplayLoginId] = useState<string | null>(loginId);
   const [message, setMessage] = useState('');
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const result = params.get('result');
   const isSuccess = result === 'success';
+  const checkoutStatusLabel = checkoutStageLabel(checkoutProgress);
+  const loginStatusLabel = loginIdStageLabel(loginIdProgress);
 
   const refreshRef = useRef(refreshSubscription);
   refreshRef.current = refreshSubscription;
+
+  useEffect(() => {
+    if (loginId) {
+      setDisplayLoginId(loginId);
+      saveCheckoutLoginId(loginId);
+    }
+  }, [loginId]);
+
+  useEffect(() => {
+    if (!isSuccess || loginId) return;
+    const savedLoginId = readSavedCheckoutLoginId();
+    if (savedLoginId) setDisplayLoginId(savedLoginId);
+  }, [isSuccess, loginId]);
+
+  useEffect(() => {
+    if (!submitting) {
+      setCheckoutProgress(0);
+      return;
+    }
+    setCheckoutProgress(12);
+    const timer = window.setInterval(() => {
+      setCheckoutProgress((current) => {
+        if (current >= 92) return current;
+        if (current < 50) return Math.min(92, current + 8);
+        if (current < 80) return Math.min(92, current + 4);
+        return Math.min(92, current + 2);
+      });
+    }, 280);
+    return () => window.clearInterval(timer);
+  }, [submitting]);
+
+  useEffect(() => {
+    if (!isSuccess || displayLoginId) {
+      setLoginIdProgress(displayLoginId ? 100 : 0);
+      return;
+    }
+    setLoginIdProgress(18);
+    const timer = window.setInterval(() => {
+      setLoginIdProgress((current) => {
+        if (current >= 96) return current;
+        if (current < 60) return Math.min(96, current + 7);
+        if (current < 85) return Math.min(96, current + 4);
+        return Math.min(96, current + 2);
+      });
+    }, 350);
+    return () => window.clearInterval(timer);
+  }, [isSuccess, displayLoginId]);
 
   // Stripe完了後: ログインしていなければ自動ログイン試行 + サブスク情報ポーリング
   useEffect(() => {
@@ -51,11 +153,16 @@ export default function SubscribePage() {
   const handleSubscribe = async () => {
     setMessage('');
     setSubmitting(true);
+    if (loginId) saveCheckoutLoginId(loginId);
     try {
       const { error } = await startCheckout();
-      if (error) setMessage(error);
+      if (error) {
+        setMessage(error);
+        setCheckoutProgress(0);
+      }
     } catch {
       setMessage('通信に失敗しました。時間をおいてもう一度お試しください。');
+      setCheckoutProgress(0);
     } finally {
       setSubmitting(false);
     }
@@ -63,6 +170,7 @@ export default function SubscribePage() {
 
   const onConfirmClose = async () => {
     setShowCloseConfirm(false);
+    clearSavedCheckoutLoginId();
     setParams({}, { replace: true });
     await signOut();
     navigate('/');
@@ -83,22 +191,27 @@ export default function SubscribePage() {
             期間内に解約すれば請求は発生しません。
           </p>
 
-          {loginId ? (
+          {displayLoginId ? (
             <div className="mt-5 rounded-2xl bg-pink-50 border-2 border-pink-300 p-5 text-center">
               <p className="text-[11px] font-bold text-pink-500">あなたのログインID</p>
-              <p className="text-5xl font-black text-rose-500 tracking-[0.4em] mt-2">{loginId}</p>
+              <p className="text-5xl font-black text-rose-500 tracking-[0.4em] mt-2">{displayLoginId}</p>
               <p className="text-[11px] text-pink-400 mt-2">初期PINは <span className="font-black">0000</span> です</p>
             </div>
           ) : (
             <div className="mt-5 text-center py-4">
-              <div className="inline-block animate-pulse text-pink-400 text-sm font-bold">
-                ログインIDを取得中...
-              </div>
+              <div className="inline-block animate-pulse text-pink-400 text-sm font-bold">{loginStatusLabel}</div>
               <p className="text-[10px] text-pink-300 mt-2">反映まで少しお待ちください</p>
+              <div className="mt-3 w-full bg-pink-100 rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-pink-400 to-rose-400 transition-all duration-300"
+                  style={{ width: `${loginIdProgress}%` }}
+                />
+              </div>
+              <p className="mt-1 text-[10px] font-bold text-pink-400">{loginIdProgress}%</p>
             </div>
           )}
 
-          {!hasStripeSubscription && loginId && (
+          {!hasStripeSubscription && displayLoginId && (
             <p className="mt-3 text-center text-[11px] text-pink-400">
               サブスクリプションの反映に少し時間がかかる場合があります。
             </p>
@@ -113,7 +226,7 @@ export default function SubscribePage() {
 
           <button
             onClick={() => setShowCloseConfirm(true)}
-            disabled={!loginId}
+            disabled={!displayLoginId}
             className="mt-5 w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform disabled:opacity-40"
           >
             保存しました。ログイン画面へ
@@ -190,8 +303,19 @@ export default function SubscribePage() {
           disabled={submitting}
           className="mt-6 w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform disabled:opacity-50"
         >
-          {submitting ? '遷移中...' : 'カードを登録する'}
+          {submitting ? `${checkoutStatusLabel}... ${checkoutProgress}%` : 'カードを登録する'}
         </button>
+        {submitting ? (
+          <>
+            <div className="mt-2 w-full bg-pink-100 rounded-full h-2 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-pink-400 to-rose-400 transition-all duration-300"
+                style={{ width: `${checkoutProgress}%` }}
+              />
+            </div>
+            <p className="mt-1 text-[10px] text-pink-400 font-bold text-center">{checkoutStatusLabel}</p>
+          </>
+        ) : null}
 
         <button
           onClick={async () => {
