@@ -1,36 +1,52 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export default function SignupPage() {
   const navigate = useNavigate();
-  const { signUp, startCheckout } = useAuth();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isSupabaseConfigured) {
+      setMessage('サーバー設定が未完了です。管理者にお問い合わせください。');
+      return;
+    }
+
     setMessage('');
     setSubmitting(true);
 
     try {
-      // 1. アカウント作成
-      const { error } = await signUp(email);
-      if (error) {
+      const priceId = import.meta.env.VITE_STRIPE_PRICE_ID as string | undefined;
+      if (!priceId) {
         setSubmitting(false);
-        setMessage(error);
+        setMessage('Stripe価格IDが設定されていません。');
         return;
       }
 
-      // 2. すぐにStripe決済へリダイレクト
-      const checkout = await startCheckout();
-      if (checkout.error) {
+      const baseUrl = window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, '');
+
+      // Edge Function で一括処理: ユーザー作成 + Stripe checkout URL 生成
+      const { data, error } = await supabase.functions.invoke('signup-and-checkout', {
+        body: {
+          email,
+          priceId,
+          successUrl: `${baseUrl}/subscribe?result=success`,
+          cancelUrl: `${baseUrl}/signup`,
+        },
+      });
+
+      if (error || !data?.url) {
         setSubmitting(false);
-        setMessage(checkout.error);
+        const msg = data?.error || '登録処理に失敗しました。時間をおいてもう一度お試しください。';
+        setMessage(msg);
         return;
       }
-      // startCheckout が成功すると window.location.assign でStripeへ飛ぶ
+
+      // Stripe決済ページへリダイレクト
+      window.location.assign(data.url as string);
     } catch {
       setSubmitting(false);
       setMessage('通信に失敗しました。時間をおいてもう一度お試しください。');
@@ -77,7 +93,7 @@ export default function SignupPage() {
             disabled={submitting}
             className="w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform disabled:opacity-50"
           >
-            {submitting ? '処理中...' : 'カード登録へ進む（7日間無料）'}
+            {submitting ? 'Stripe決済ページへ移動中...' : 'カード登録へ進む（7日間無料）'}
           </button>
           <p className="text-[11px] text-pink-400 leading-relaxed text-center">
             Stripeの安全な決済ページでカード情報を登録します。<br />

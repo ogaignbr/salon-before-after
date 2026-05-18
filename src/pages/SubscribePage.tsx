@@ -23,22 +23,29 @@ export default function SubscribePage() {
   const refreshRef = useRef(refreshSubscription);
   refreshRef.current = refreshSubscription;
 
-  // Stripe完了後: サブスク情報をポーリングで取得
+  // Stripe完了後: ログインしていなければ自動ログイン試行 + サブスク情報ポーリング
   useEffect(() => {
-    if (!isSuccess || !user) return;
+    if (!isSuccess) return;
     let cancelled = false;
-    const tryRefresh = async () => {
+
+    const boot = async () => {
+      // ユーザーがログインしていない場合、セッション復元を待つ
+      if (!user) {
+        // AuthProviderの初期化完了を少し待つ
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+
+      // ポーリングでサブスク反映を確認
       for (let i = 0; i < 10; i += 1) {
         if (cancelled) return;
         await refreshRef.current();
         if (cancelled) return;
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await new Promise((r) => setTimeout(r, 1500));
       }
     };
-    void tryRefresh();
-    return () => {
-      cancelled = true;
-    };
+
+    void boot();
+    return () => { cancelled = true; };
   }, [isSuccess, user]);
 
   const handleSubscribe = async () => {
@@ -83,14 +90,15 @@ export default function SubscribePage() {
               <p className="text-[11px] text-pink-400 mt-2">初期PINは <span className="font-black">0000</span> です</p>
             </div>
           ) : (
-            <div className="mt-5 text-center">
+            <div className="mt-5 text-center py-4">
               <div className="inline-block animate-pulse text-pink-400 text-sm font-bold">
                 ログインIDを取得中...
               </div>
+              <p className="text-[10px] text-pink-300 mt-2">反映まで少しお待ちください</p>
             </div>
           )}
 
-          {!hasStripeSubscription && (
+          {!hasStripeSubscription && loginId && (
             <p className="mt-3 text-center text-[11px] text-pink-400">
               サブスクリプションの反映に少し時間がかかる場合があります。
             </p>
@@ -105,7 +113,8 @@ export default function SubscribePage() {
 
           <button
             onClick={() => setShowCloseConfirm(true)}
-            className="mt-5 w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform"
+            disabled={!loginId}
+            className="mt-5 w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform disabled:opacity-40"
           >
             保存しました。ログイン画面へ
           </button>
