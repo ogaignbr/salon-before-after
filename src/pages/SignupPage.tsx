@@ -152,7 +152,7 @@ export default function SignupPage() {
         ) : null}
 
         <div className="mt-4 text-center">
-          <button onClick={() => navigate('/login')} className="text-xs text-pink-300 underline">
+          <button onClick={() => navigate('/')} className="text-xs text-pink-300 underline">
             すでに登録済みの方はこちら
           </button>
         </div>

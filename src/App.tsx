@@ -53,15 +53,15 @@ export default function App() {
       <BrowserRouter basename={basename || undefined}>
         <AuthProvider>
           <Routes>
-            {/* 公開ページ */}
-            <Route path="/login" element={<LoginPage />} />
+            {/* ランディング = ログイン */}
+            <Route path="/" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/subscribe" element={<SubscribePage />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route path="/terms" element={<TermsPage />} />
 
             {/* 認証 + サブスク必須ページ */}
-            <Route path="/" element={<AuthGuard><HomePage /></AuthGuard>} />
+            <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
             <Route path="/capture" element={<AuthGuard><CapturePage /></AuthGuard>} />
             <Route path="/preview/:id" element={<AuthGuard><PreviewPage /></AuthGuard>} />
             <Route path="/history" element={<AuthGuard><HistoryPage /></AuthGuard>} />

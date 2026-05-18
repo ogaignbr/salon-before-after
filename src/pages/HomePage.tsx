@@ -25,7 +25,7 @@ export default function HomePage() {
         <button
           onClick={async () => {
             await signOut();
-            navigate('/login');
+            navigate('/');
           }}
           className="text-pink-300 font-bold text-xs underline"
         >

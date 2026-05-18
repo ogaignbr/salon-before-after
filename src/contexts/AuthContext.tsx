@@ -345,7 +345,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.functions.invoke('create-portal-session', {
         body: {
           userId: user.id,
-          returnUrl: `${baseUrl}/`,
+          returnUrl: `${baseUrl}/home`,
         },
       });
       if (error || !data?.url) {

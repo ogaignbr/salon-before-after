@@ -63,7 +63,7 @@ export default function SubscribePage() {
     setShowCloseConfirm(false);
     setParams({}, { replace: true });
     await signOut();
-    navigate('/login');
+    navigate('/');
   };
 
   if (isSuccess) {
@@ -212,7 +212,7 @@ export default function SubscribePage() {
         <button
           onClick={async () => {
             await signOut();
-            navigate('/login');
+            navigate('/');
           }}
           className="mt-3 text-xs text-pink-300 underline"
         >
