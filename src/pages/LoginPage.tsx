@@ -41,20 +41,20 @@ export default function LoginPage() {
       const { error } = await signIn(email, pin);
       if (error) {
         setSubmitting(false);
-        setMessage('メールアドレスまたは暗証番号が違います。');
+        setMessage('Incorrect email or PIN.');
         return;
       }
 
       if (needsPinChange || pin === '0000') {
         setSubmitting(false);
         setShowPinChange(true);
-        setMessage('初期暗証番号のため、先に暗証番号変更を行ってください。');
+        setMessage('Please change your initial PIN before continuing.');
         return;
       }
 
       navigate('/home', { replace: true });
     } catch {
-      setMessage('通信に失敗しました。時間をおいてもう一度お試しください。');
+      setMessage('Connection failed. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -64,11 +64,11 @@ export default function LoginPage() {
     e.preventDefault();
     setMessage('');
     if (!isFourDigits(newPin) || !isFourDigits(newPinConfirm)) {
-      setMessage('暗証番号は4桁の数字で入力してください。');
+      setMessage('PIN must be 4 digits.');
       return;
     }
     if (newPin !== newPinConfirm) {
-      setMessage('新しい暗証番号が一致しません。');
+      setMessage('PINs do not match.');
       return;
     }
 
@@ -82,46 +82,44 @@ export default function LoginPage() {
       setMessage('');
       navigate('/home', { replace: true });
     } catch {
-      setMessage('通信に失敗しました。時間をおいてもう一度お試しください。');
+      setMessage('Connection failed. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-dvh bg-gradient-to-b from-pink-100 via-pink-50 to-white flex flex-col items-center justify-center px-6 relative overflow-hidden">
-      {/* Decorative */}
-      <div className="absolute top-6 left-6 text-pink-300 text-2xl animate-sparkle">&#10022;</div>
-      <div className="absolute top-16 right-8 text-yellow-300 text-xl animate-sparkle" style={{ animationDelay: '1s' }}>&#9733;</div>
-      <div className="absolute bottom-32 left-10 text-purple-300 text-lg animate-sparkle" style={{ animationDelay: '0.5s' }}>&#9829;</div>
-
+    <div className="min-h-dvh bg-slate-50 flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm animate-slide-up">
         {/* Logo */}
-        <div className="text-center mb-6">
-          <div className="text-5xl mb-2">&#128247;</div>
-          <h1 className="text-3xl font-black bg-gradient-to-r from-pink-400 via-pink-500 to-rose-400 bg-clip-text text-transparent">
-            ぴたカメ
-          </h1>
-          <p className="text-xs text-pink-400 font-bold mt-1">ぴたっと撮れる。変化が伝わる。</p>
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 mx-auto mb-4 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">PitaCame</h1>
+          <p className="text-sm text-slate-400 mt-1 font-medium">Compare Camera for Business</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white/90 rounded-3xl shadow-xl border border-pink-100 p-6">
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200/60 p-6">
           {!needsPinChange && !showPinChange ? (
             <form className="space-y-4" onSubmit={onLogin}>
               <label className="block">
-                <span className="text-xs font-bold text-pink-400">メールアドレス</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</span>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="mt-1 w-full rounded-xl border border-pink-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-pink-300"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all bg-slate-50"
                   placeholder="example@salon.com"
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-bold text-pink-400">暗証番号（4桁）</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">PIN (4 digits)</span>
                 <input
                   type="password"
                   inputMode="numeric"
@@ -130,26 +128,28 @@ export default function LoginPage() {
                   value={pin}
                   onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   required
-                  className="mt-1 w-full rounded-xl border border-pink-200 px-4 py-3 text-base text-center tracking-[0.3em] font-bold outline-none focus:ring-2 focus:ring-pink-300"
-                  placeholder="****"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 text-base text-center tracking-[0.3em] font-semibold outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all bg-slate-50"
+                  placeholder="----"
                 />
               </label>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform disabled:opacity-50 text-lg"
+                className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 text-base"
               >
-                {submitting ? 'ログイン中...' : 'ログイン'}
+                {submitting ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
           ) : (
             <form className="space-y-4" onSubmit={onChangeInitialPin}>
-              <p className="text-xs text-rose-500 font-bold text-center">
-                初回ログインのため暗証番号変更が必要です
-              </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <p className="text-xs text-amber-700 font-medium text-center">
+                  Initial login requires PIN change
+                </p>
+              </div>
               <label className="block">
-                <span className="text-xs font-bold text-pink-400">新しい暗証番号（4桁）</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">New PIN (4 digits)</span>
                 <input
                   type="password"
                   inputMode="numeric"
@@ -158,11 +158,11 @@ export default function LoginPage() {
                   value={newPin}
                   onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   required
-                  className="mt-1 w-full rounded-xl border border-pink-200 px-4 py-3 text-base text-center tracking-[0.3em] font-bold outline-none focus:ring-2 focus:ring-pink-300"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 text-base text-center tracking-[0.3em] font-semibold outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all bg-slate-50"
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-bold text-pink-400">新しい暗証番号（確認）</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Confirm New PIN</span>
                 <input
                   type="password"
                   inputMode="numeric"
@@ -171,35 +171,36 @@ export default function LoginPage() {
                   value={newPinConfirm}
                   onChange={(e) => setNewPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   required
-                  className="mt-1 w-full rounded-xl border border-pink-200 px-4 py-3 text-base text-center tracking-[0.3em] font-bold outline-none focus:ring-2 focus:ring-pink-300"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 text-base text-center tracking-[0.3em] font-semibold outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all bg-slate-50"
                 />
               </label>
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform disabled:opacity-50"
+                className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50"
               >
-                {submitting ? '変更中...' : '暗証番号を変更して続行'}
+                {submitting ? 'Updating...' : 'Update PIN & Continue'}
               </button>
             </form>
           )}
 
           {message && (
-            <p className="mt-3 text-center text-xs font-bold text-rose-500">{message}</p>
+            <p className="mt-3 text-center text-xs font-medium text-red-500">{message}</p>
           )}
         </div>
 
         {/* Bottom links */}
-        <div className="mt-6 text-center space-y-3 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+        <div className="mt-6 text-center space-y-3 animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <button
             onClick={() => navigate('/signup')}
-            className="w-full py-3 bg-white text-pink-500 font-black rounded-2xl shadow-md border-2 border-pink-200 active:scale-95 transition-transform"
+            className="w-full py-3 bg-white text-indigo-600 font-semibold rounded-xl shadow-sm border border-slate-200 hover:border-indigo-300 active:scale-[0.98] transition-all"
           >
-            新規登録はこちら
+            Create Account
           </button>
-          <div className="flex justify-center gap-3 mt-2">
-            <button onClick={() => navigate('/terms')} className="text-[10px] text-pink-300 underline">利用規約</button>
-            <button onClick={() => navigate('/privacy')} className="text-[10px] text-pink-300 underline">プライバシーポリシー</button>
+          <div className="flex justify-center gap-4 mt-2">
+            <button onClick={() => navigate('/terms')} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">Terms</button>
+            <span className="text-xs text-slate-300">|</span>
+            <button onClick={() => navigate('/privacy')} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">Privacy</button>
           </div>
         </div>
       </div>

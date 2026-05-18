@@ -6,8 +6,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-dvh bg-gradient-to-b from-pink-100 via-pink-50 to-white flex items-center justify-center">
-        <div className="text-pink-400 font-bold animate-pulse">読み込み中...</div>
+      <div className="min-h-dvh bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 mx-auto border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+          <p className="mt-3 text-slate-400 font-medium text-sm">Loading...</p>
+        </div>
       </div>
     );
   }

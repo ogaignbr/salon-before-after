@@ -107,7 +107,7 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
     const ctx = canvas.getContext('2d')!;
     const detections = await detectFaces(canvas);
     if (detections.length === 0) {
-      alert('顔を検出できませんでした。手動でモザイクをかけてください。');
+      alert('No faces detected. Please apply mosaic manually.');
       return;
     }
     for (const det of detections) {
@@ -131,12 +131,12 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-gray-800 to-gray-900">
+    <div className="flex flex-col h-full bg-slate-900">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-pink-500/80 to-rose-400/80 text-white">
-        <button onClick={onCancel} className="text-sm font-bold">キャンセル</button>
-        <span className="font-black text-sm">&#128064; モザイク編集</span>
-        <button onClick={handleSave} className="text-sm text-yellow-200 font-black">適用</button>
+      <div className="flex items-center justify-between px-4 py-3 bg-slate-800 text-white border-b border-white/10">
+        <button onClick={onCancel} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Cancel</button>
+        <span className="font-semibold text-sm">Mosaic Editor</span>
+        <button onClick={handleSave} className="text-sm text-indigo-400 font-semibold hover:text-indigo-300 transition-colors">Apply</button>
       </div>
 
       {/* Canvas area */}
@@ -155,45 +155,45 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
       </div>
 
       {/* Controls */}
-      <div className="bg-gray-800/90 backdrop-blur px-4 py-3 space-y-3 rounded-t-2xl">
+      <div className="bg-slate-800 backdrop-blur px-4 py-3 space-y-3 rounded-t-2xl border-t border-white/10">
         <div className="flex gap-2">
           <button
             onClick={handleAutoDetect}
             disabled={isLoading}
-            className="flex-1 py-2 rounded-xl bg-gradient-to-r from-pink-400 to-rose-400 text-white text-sm font-black disabled:opacity-50 active:scale-95 transition-transform"
+            className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50 hover:bg-indigo-700 active:scale-[0.98] transition-all"
           >
-            {isLoading ? '読み込み中...' : '&#129504; 自動顔検出'}
+            {isLoading ? 'Loading...' : 'Auto Detect Faces'}
           </button>
           <button
             onClick={handleUndo}
             disabled={history.length <= 1}
-            className="px-4 py-2 rounded-xl bg-white/10 text-white text-sm font-bold disabled:opacity-30 active:scale-95 transition-transform"
+            className="px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-medium disabled:opacity-30 hover:bg-white/20 active:scale-[0.98] transition-all"
           >
-            &#8617; 戻す
+            Undo
           </button>
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-pink-300 font-bold">ブラシサイズ: {brushSize}</label>
+          <label className="text-xs text-slate-400 font-medium">Brush Size: {brushSize}</label>
           <input
             type="range"
             min="10"
             max="80"
             value={brushSize}
             onChange={(e) => setBrushSize(Number(e.target.value))}
-            className="w-full accent-pink-400"
+            className="w-full accent-indigo-500"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-pink-300 font-bold">モザイク強度: {blockSize}</label>
+          <label className="text-xs text-slate-400 font-medium">Mosaic Strength: {blockSize}</label>
           <input
             type="range"
             min="5"
             max="40"
             value={blockSize}
             onChange={(e) => setBlockSize(Number(e.target.value))}
-            className="w-full accent-pink-400"
+            className="w-full accent-indigo-500"
           />
         </div>
       </div>

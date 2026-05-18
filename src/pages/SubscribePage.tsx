@@ -13,9 +13,9 @@ function clearCheckoutEmail() {
 }
 
 function checkoutStageLabel(progress: number) {
-  if (progress < 35) return '通信確認中';
-  if (progress < 75) return '決済ページ作成中';
-  return '決済ページへ移動中';
+  if (progress < 35) return 'Connecting';
+  if (progress < 75) return 'Creating checkout';
+  return 'Redirecting';
 }
 
 export default function SubscribePage() {
@@ -61,7 +61,7 @@ export default function SubscribePage() {
         setCheckoutProgress(0);
       }
     } catch {
-      setMessage('通信に失敗しました。時間をおいてもう一度お試しください。');
+      setMessage('Connection failed. Please try again.');
       setCheckoutProgress(0);
     } finally {
       setSubmitting(false);
@@ -75,92 +75,119 @@ export default function SubscribePage() {
     navigate('/');
   };
 
-  // ===== Stripe決済完了画面（シンプル表示） =====
   if (isSuccess) {
     return (
-      <div className="min-h-dvh bg-gradient-to-b from-pink-100 via-pink-50 to-white flex items-center justify-center px-6">
-        <div className="w-full max-w-sm bg-white/90 rounded-3xl shadow-xl border border-pink-100 p-6 relative">
-          <div className="text-center mb-3">
-            <div className="text-4xl mb-1">&#127881;</div>
-            <h1 className="text-2xl font-black text-pink-500">登録が完了しました！</h1>
+      <div className="min-h-dvh bg-slate-50 flex items-center justify-center px-6">
+        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-slate-200/60 p-6">
+          <div className="text-center mb-4">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-50 flex items-center justify-center">
+              <svg className="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold text-slate-800">Registration Complete</h1>
           </div>
 
-          <p className="text-xs text-pink-400 text-center leading-relaxed">
-            7日間は0円、8日目から月額980円が自動で発生します。<br />
-            期間内に解約すれば請求は発生しません。
+          <p className="text-xs text-slate-500 text-center leading-relaxed">
+            Free for 7 days. Monthly billing of 980 JPY starts on day 8.
+            <br />Cancel before then to avoid charges.
           </p>
 
-          <div className="mt-5 bg-pink-50 rounded-2xl p-4 border-2 border-pink-200 text-center">
-            <p className="text-xs font-bold text-pink-500">ログイン情報</p>
-            <p className="mt-2 text-sm font-bold text-rose-500">
-              登録メールアドレス ＋ 暗証番号「0000」
+          <div className="mt-5 bg-indigo-50 rounded-xl p-4 border border-indigo-100 text-center">
+            <p className="text-xs font-semibold text-indigo-600">Login Credentials</p>
+            <p className="mt-2 text-sm font-semibold text-slate-700">
+              Your email + PIN: 0000
             </p>
-            <p className="mt-2 text-[11px] text-pink-400 leading-relaxed">
-              初回ログイン後、お好みの暗証番号に変更してください。
+            <p className="mt-2 text-[11px] text-slate-500 leading-relaxed">
+              You will be asked to change your PIN on first login.
             </p>
           </div>
 
           <button
             onClick={goToLogin}
-            className="mt-6 w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform"
+            className="mt-6 w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all"
           >
-            ログイン画面へ進む
+            Go to Sign In
           </button>
         </div>
       </div>
     );
   }
 
-  // ===== サブスク未登録の場合のカード登録画面 =====
   return (
-    <div className="min-h-dvh bg-gradient-to-b from-pink-100 via-pink-50 to-white flex items-center justify-center px-6">
-      <div className="w-full max-w-sm bg-white/90 rounded-3xl shadow-xl border border-pink-100 p-6 text-center">
-        <div className="text-5xl mb-4">&#128247;</div>
-        <h1 className="text-2xl font-black text-pink-500">ぴたカメ</h1>
+    <div className="min-h-dvh bg-slate-50 flex items-center justify-center px-6">
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-slate-200/60 p-6 text-center">
+        <div className="w-12 h-12 mx-auto mb-4 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+          </svg>
+        </div>
+        <h1 className="text-xl font-bold text-slate-800">PitaCame</h1>
 
         {subscription === 'expired'
           || subscription === 'canceled'
           || subscription === 'past_due' ? (
-          <div className="mt-4 space-y-2">
-            <p className="text-sm text-pink-500 font-bold">サブスクリプションが無効です</p>
-            <p className="text-xs text-pink-400">引き続きご利用いただくにはカード登録が必要です。</p>
+          <div className="mt-4 space-y-1">
+            <p className="text-sm text-slate-700 font-semibold">Subscription Inactive</p>
+            <p className="text-xs text-slate-400">Please register a payment method to continue.</p>
           </div>
         ) : (
-          <div className="mt-4 space-y-2">
-            <p className="text-sm text-pink-500 font-bold">カード登録（7日間無料）</p>
-            <p className="text-xs text-pink-400">8日目から月額980円が自動で発生します。</p>
+          <div className="mt-4 space-y-1">
+            <p className="text-sm text-slate-700 font-semibold">Payment Setup (7-day free trial)</p>
+            <p className="text-xs text-slate-400">Monthly billing of 980 JPY starts on day 8.</p>
           </div>
         )}
 
-        <div className="mt-6 bg-pink-50 rounded-2xl p-4 border border-pink-100">
-          <p className="text-lg font-black text-pink-500">
-            月額 980円<span className="text-xs font-bold">（税込）</span>
-          </p>
-          <ul className="mt-3 text-xs text-pink-400 space-y-1 text-left">
-            <li>&#10003; 7日間は0円。期間内に解約すれば請求は発生しません。</li>
-            <li>&#10003; ビフォーアフター撮影し放題</li>
-            <li>&#10003; ゴースト重ね撮影</li>
-            <li>&#10003; モザイク加工（AI顔検出）</li>
-            <li>&#10003; 比較画像の書き出し・共有</li>
+        <div className="mt-5 bg-slate-50 rounded-xl p-4 border border-slate-200">
+          <div className="flex items-baseline justify-center gap-1">
+            <span className="text-2xl font-bold text-slate-800">980</span>
+            <span className="text-sm font-medium text-slate-500">JPY / mo</span>
+          </div>
+          <ul className="mt-3 text-xs text-slate-500 space-y-1.5 text-left">
+            <li className="flex items-center gap-2">
+              <svg className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              7 days free - cancel anytime
+            </li>
+            <li className="flex items-center gap-2">
+              <svg className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Unlimited before/after captures
+            </li>
+            <li className="flex items-center gap-2">
+              <svg className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Ghost overlay & AI mosaic
+            </li>
+            <li className="flex items-center gap-2">
+              <svg className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Export & share comparisons
+            </li>
           </ul>
         </div>
 
         <button
           onClick={handleSubscribe}
           disabled={submitting}
-          className="mt-6 w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform disabled:opacity-50"
+          className="mt-5 w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50"
         >
-          {submitting ? `${checkoutStatusLabel}... ${checkoutProgress}%` : 'カードを登録する'}
+          {submitting ? `${checkoutStatusLabel}... ${checkoutProgress}%` : 'Set Up Payment'}
         </button>
         {submitting ? (
           <>
-            <div className="mt-2 w-full bg-pink-100 rounded-full h-2 overflow-hidden">
+            <div className="mt-2 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-pink-400 to-rose-400 transition-all duration-300"
+                className="h-full bg-indigo-600 transition-all duration-300 rounded-full"
                 style={{ width: `${checkoutProgress}%` }}
               />
             </div>
-            <p className="mt-1 text-[10px] text-pink-400 font-bold text-center">{checkoutStatusLabel}</p>
+            <p className="mt-1 text-[10px] text-slate-400 font-medium text-center">{checkoutStatusLabel}</p>
           </>
         ) : null}
 
@@ -175,21 +202,22 @@ export default function SubscribePage() {
               setSubmitting(false);
             }
           }}
-          className="mt-3 w-full py-2 text-xs text-pink-400 font-bold underline"
+          className="mt-3 w-full py-2 text-xs text-indigo-500 font-medium hover:text-indigo-700 transition-colors"
         >
-          すでに登録済みの方はここをタップ
+          Already registered? Tap to refresh
         </button>
 
         {message ? (
-          <p className="mt-3 text-xs font-bold text-rose-500">{message}</p>
+          <p className="mt-3 text-xs font-medium text-red-500">{message}</p>
         ) : null}
 
         <div className="mt-4 flex justify-center gap-4">
-          <button onClick={() => navigate('/terms')} className="text-[10px] text-pink-300 underline">
-            利用規約
+          <button onClick={() => navigate('/terms')} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+            Terms
           </button>
-          <button onClick={() => navigate('/privacy')} className="text-[10px] text-pink-300 underline">
-            プライバシーポリシー
+          <span className="text-xs text-slate-300">|</span>
+          <button onClick={() => navigate('/privacy')} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+            Privacy
           </button>
         </div>
 
@@ -198,9 +226,9 @@ export default function SubscribePage() {
             await signOut();
             navigate('/');
           }}
-          className="mt-3 text-xs text-pink-300 underline"
+          className="mt-3 text-xs text-slate-400 hover:text-slate-600 transition-colors"
         >
-          ログアウト
+          Sign Out
         </button>
       </div>
     </div>

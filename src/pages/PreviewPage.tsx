@@ -23,10 +23,10 @@ export default function PreviewPage() {
 
   if (!session || !session.afterImage) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-b from-pink-100 to-white">
+      <div className="min-h-dvh flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="text-4xl mb-3 animate-float">&#128248;</div>
-          <p className="text-pink-300 font-bold">読み込み中...</p>
+          <div className="w-10 h-10 mx-auto mb-3 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+          <p className="text-slate-400 font-medium text-sm">Loading...</p>
         </div>
       </div>
     );
@@ -97,29 +97,31 @@ export default function PreviewPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-gradient-to-b from-pink-100 via-pink-50 to-white flex flex-col relative overflow-hidden">
-      {/* Decorative */}
-      <div className="absolute top-20 right-3 text-pink-200 text-xl animate-sparkle">&#10022;</div>
-      <div className="absolute bottom-40 left-3 text-yellow-200 text-lg animate-sparkle" style={{ animationDelay: '1s' }}>&#9733;</div>
-
+    <div className="min-h-dvh bg-slate-50 flex flex-col">
       {/* Header */}
-      <div className="flex items-center px-4 py-3 bg-white/70 backdrop-blur-sm border-b border-pink-100">
-        <button onClick={() => navigate('/home')} className="text-pink-400 font-bold text-sm flex items-center gap-1">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <div className="flex items-center px-4 py-3 bg-white border-b border-slate-100">
+        <button onClick={() => navigate('/home')} className="text-indigo-600 font-medium text-sm flex items-center gap-1">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          ホーム
+          Home
         </button>
-        <h1 className="flex-1 text-center font-black text-pink-500 text-base">&#10024; プレビュー</h1>
+        <h1 className="flex-1 text-center font-bold text-slate-800 text-sm">Preview</h1>
         <div className="w-14" />
       </div>
 
       {/* Customer info */}
-      <div className="px-4 py-3 bg-white/50 border-b border-pink-100">
-        <p className="font-black text-pink-600">{session.customerName}</p>
-        <p className="text-xs text-pink-400 font-bold">
-          {new Date(session.createdAt).toLocaleDateString('ja-JP')} ・ {session.part === 'face' ? '&#128102; 顔' : '&#128131; 体'}
-        </p>
+      <div className="px-5 py-3 bg-white border-b border-slate-100">
+        <p className="font-semibold text-slate-800">{session.customerName}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <p className="text-xs text-slate-400 font-medium">
+            {new Date(session.createdAt).toLocaleDateString('ja-JP')}
+          </p>
+          <span className="text-xs text-slate-300">|</span>
+          <p className="text-xs text-slate-400 font-medium">
+            {session.part === 'face' ? 'Face' : 'Body'}
+          </p>
+        </div>
       </div>
 
       {/* Compare view */}
@@ -129,19 +131,19 @@ export default function PreviewPage() {
 
       {/* Mosaic buttons */}
       <div className="px-4 space-y-2 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-        <p className="text-xs font-black text-pink-400">&#128064; モザイク加工</p>
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mosaic Editor</p>
         <div className="flex gap-2">
           <button
             onClick={() => setEditingMosaic('before')}
-            className="flex-1 py-2.5 rounded-2xl bg-white text-pink-500 text-sm font-black border-2 border-pink-200 active:scale-95 transition-transform"
+            className="flex-1 py-2.5 rounded-xl bg-white text-slate-600 text-sm font-semibold border border-slate-200 hover:border-indigo-300 active:scale-[0.98] transition-all"
           >
-            ビフォーを編集
+            Edit Before
           </button>
           <button
             onClick={() => setEditingMosaic('after')}
-            className="flex-1 py-2.5 rounded-2xl bg-white text-pink-500 text-sm font-black border-2 border-pink-200 active:scale-95 transition-transform"
+            className="flex-1 py-2.5 rounded-xl bg-white text-slate-600 text-sm font-semibold border border-slate-200 hover:border-indigo-300 active:scale-[0.98] transition-all"
           >
-            アフターを編集
+            Edit After
           </button>
         </div>
       </div>
@@ -151,22 +153,22 @@ export default function PreviewPage() {
         <button
           onClick={handleExport}
           disabled={isExporting}
-          className="w-full py-3.5 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-lg active:scale-95 transition-transform disabled:opacity-50 animate-pulse-glow"
+          className="w-full py-3.5 bg-indigo-600 text-white font-semibold rounded-xl shadow-md hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 animate-subtle-pulse"
         >
-          {isExporting ? '書き出し中...' : '&#128247; 比較画像を書き出し・共有'}
+          {isExporting ? 'Exporting...' : 'Export & Share Comparison'}
         </button>
         <div className="flex gap-2">
           <button
             onClick={() => handleShareSingle(session.beforeImage, 'before')}
-            className="flex-1 py-2.5 rounded-2xl bg-white text-pink-500 text-sm font-black border-2 border-pink-200 active:scale-95 transition-transform"
+            className="flex-1 py-2.5 rounded-xl bg-white text-slate-600 text-sm font-semibold border border-slate-200 hover:border-indigo-300 active:scale-[0.98] transition-all"
           >
-            ビフォーのみ
+            Before Only
           </button>
           <button
             onClick={() => handleShareSingle(session.afterImage!, 'after')}
-            className="flex-1 py-2.5 rounded-2xl bg-white text-pink-500 text-sm font-black border-2 border-pink-200 active:scale-95 transition-transform"
+            className="flex-1 py-2.5 rounded-xl bg-white text-slate-600 text-sm font-semibold border border-slate-200 hover:border-indigo-300 active:scale-[0.98] transition-all"
           >
-            アフターのみ
+            After Only
           </button>
         </div>
       </div>

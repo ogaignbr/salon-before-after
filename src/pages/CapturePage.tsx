@@ -24,7 +24,6 @@ export default function CapturePage() {
   const [flash, setFlash] = useState(false);
   const [consent, setConsent] = useState(false);
 
-  // Resume from an existing session (after photo only)
   useEffect(() => {
     if (resumeSessionId) {
       const id = Number(resumeSessionId);
@@ -59,7 +58,7 @@ export default function CapturePage() {
     setBeforeBlob(blob);
 
     const id = await db.sessions.add({
-      customerName: customerName || '名前未設定',
+      customerName: customerName || 'Unnamed',
       part,
       beforeImage: blob,
       createdAt: new Date(),
@@ -92,97 +91,91 @@ export default function CapturePage() {
 
   if (step === 'setup') {
     return (
-      <div className="min-h-dvh bg-gradient-to-b from-pink-100 via-pink-50 to-white flex flex-col relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute top-20 right-4 text-pink-200 text-2xl animate-sparkle">&#10022;</div>
-        <div className="absolute bottom-32 left-4 text-yellow-200 text-xl animate-sparkle" style={{ animationDelay: '1s' }}>&#9733;</div>
-
+      <div className="min-h-dvh bg-slate-50 flex flex-col">
         {/* Header */}
-        <div className="flex items-center px-4 py-3 bg-white/70 backdrop-blur-sm border-b border-pink-100">
-          <button onClick={() => navigate('/home')} className="text-pink-400 font-bold text-sm flex items-center gap-1">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <div className="flex items-center px-4 py-3 bg-white border-b border-slate-100">
+          <button onClick={() => navigate('/home')} className="text-indigo-600 font-medium text-sm flex items-center gap-1">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-            もどる
+            Back
           </button>
-          <h1 className="flex-1 text-center font-black text-pink-500 text-base">撮影設定</h1>
+          <h1 className="flex-1 text-center font-bold text-slate-800 text-sm">Capture Settings</h1>
           <div className="w-10" />
         </div>
 
-        <div className="flex-1 px-6 py-8 space-y-8 animate-slide-up">
+        <div className="flex-1 px-6 py-8 space-y-6 animate-slide-up">
           <div className="space-y-2">
-            <label className="text-sm font-black text-pink-500 flex items-center gap-1">
-              &#9829; お客様名
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Client Name
             </label>
             <input
               type="text"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="例: 山田 花子 様"
-              className="w-full px-4 py-3 border-2 border-pink-200 rounded-2xl text-base focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300 bg-white font-bold text-gray-700 placeholder-pink-200"
+              placeholder="e.g. Hanako Yamada"
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 bg-white font-medium text-slate-700 placeholder-slate-300 transition-all"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-black text-pink-500 flex items-center gap-1">
-              &#10022; 撮影部位
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Target Area
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setPart('face')}
-                className={`py-4 rounded-2xl text-base font-black transition-all ${
+                className={`py-4 rounded-xl text-sm font-semibold transition-all ${
                   part === 'face'
-                    ? 'bg-gradient-to-r from-pink-400 to-rose-400 text-white shadow-lg scale-105'
-                    : 'bg-white text-pink-300 border-2 border-pink-200'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-white text-slate-400 border border-slate-200 hover:border-indigo-300'
                 }`}
               >
-                &#128102; 顔
+                Face
               </button>
               <button
                 onClick={() => setPart('body')}
-                className={`py-4 rounded-2xl text-base font-black transition-all ${
+                className={`py-4 rounded-xl text-sm font-semibold transition-all ${
                   part === 'body'
-                    ? 'bg-gradient-to-r from-pink-400 to-rose-400 text-white shadow-lg scale-105'
-                    : 'bg-white text-pink-300 border-2 border-pink-200'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-white text-slate-400 border border-slate-200 hover:border-indigo-300'
                 }`}
               >
-                &#128131; 体
+                Body
               </button>
             </div>
           </div>
 
           {/* Consent area */}
-          <div className="bg-pink-50 rounded-2xl p-4 border border-pink-200 space-y-3">
-            <p className="text-[11px] text-gray-500 leading-relaxed">
-              撮影にあたり、お客様より写真撮影・データ保存について同意を得てください。
-              撮影データは本端末内にのみ保存され、外部サーバーには送信されません。
-              お客様から削除の要請があった場合は速やかに対応してください。
+          <div className="bg-white rounded-xl p-4 border border-slate-200 space-y-3">
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Please obtain consent from the client for photo capture and data storage before proceeding.
+              All data is stored locally on this device only and is never sent to external servers.
             </p>
-            <label className="flex items-start gap-2 cursor-pointer">
+            <label className="flex items-start gap-2.5 cursor-pointer">
               <input
                 type="checkbox"
                 checked={consent}
                 onChange={(e) => setConsent(e.target.checked)}
-                className="mt-0.5 w-4 h-4 accent-pink-500 rounded flex-shrink-0"
+                className="mt-0.5 w-4 h-4 accent-indigo-600 rounded flex-shrink-0"
               />
-              <span className="text-[11px] text-gray-600 leading-snug">
-                お客様から撮影・データ保存の同意を得ました。
+              <span className="text-[11px] text-slate-600 leading-snug">
+                Client consent obtained.
                 <button
                   type="button"
                   onClick={() => navigate('/privacy')}
-                  className="text-pink-400 underline ml-0.5"
+                  className="text-indigo-500 ml-1 hover:text-indigo-700"
                 >
-                  プライバシーポリシー
+                  Privacy
                 </button>
-                ・
+                {' / '}
                 <button
                   type="button"
                   onClick={() => navigate('/terms')}
-                  className="text-pink-400 underline"
+                  className="text-indigo-500 hover:text-indigo-700"
                 >
-                  利用規約
+                  Terms
                 </button>
-                に同意します。
               </span>
             </label>
           </div>
@@ -190,9 +183,9 @@ export default function CapturePage() {
           <button
             onClick={() => setStep('before')}
             disabled={!consent}
-            className="w-full py-4 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-lg text-lg active:scale-95 transition-transform disabled:opacity-40 disabled:scale-100"
+            className="w-full py-4 bg-indigo-600 text-white font-semibold rounded-xl shadow-md text-base hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-30 disabled:scale-100"
           >
-            ビフォー撮影へ &#10148;
+            Proceed to Before Shot
           </button>
         </div>
       </div>
@@ -205,25 +198,25 @@ export default function CapturePage() {
       {flash && <div className="absolute inset-0 bg-white z-50" />}
 
       {/* Header */}
-      <div className="relative z-20 flex items-center justify-between px-4 py-2 bg-gradient-to-r from-pink-500/80 to-rose-400/80 backdrop-blur-sm text-white">
+      <div className="relative z-20 flex items-center justify-between px-4 py-2.5 bg-slate-900/80 backdrop-blur-md text-white border-b border-white/10">
         <button
           onClick={() => {
             stop();
             if (step === 'after') handleRetakeBefore();
             else { setStep('setup'); }
           }}
-          className="text-sm font-bold flex items-center gap-1"
+          className="text-sm font-medium flex items-center gap-1"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          もどる
+          Back
         </button>
-        <span className="font-black text-sm">
-          {step === 'before' ? '&#128248; ビフォー撮影' : '&#10024; アフター撮影'}
+        <span className="font-semibold text-sm tracking-wide">
+          {step === 'before' ? 'BEFORE' : 'AFTER'}
         </span>
-        <button onClick={switchCamera} className="p-1">
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <button onClick={switchCamera} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </button>
@@ -248,23 +241,23 @@ export default function CapturePage() {
 
         {error && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-center p-4">
-            <p className="font-bold">{error}</p>
+            <p className="font-medium">{error}</p>
           </div>
         )}
       </div>
 
       {/* Controls */}
-      <div className="relative z-20 bg-gradient-to-t from-black/90 to-black/60 px-4 py-4 space-y-3">
+      <div className="relative z-20 bg-gradient-to-t from-black/95 to-black/70 px-4 py-4 space-y-3">
         {step === 'after' && (
           <div className="flex items-center gap-3 px-2">
-            <span className="text-white text-xs font-bold whitespace-nowrap">&#128123; 透過度</span>
+            <span className="text-white/70 text-xs font-medium whitespace-nowrap">Overlay</span>
             <input
               type="range"
               min="0"
               max="80"
               value={ghostOpacity * 100}
               onChange={(e) => setGhostOpacity(Number(e.target.value) / 100)}
-              className="flex-1 accent-pink-400"
+              className="flex-1 accent-indigo-400"
             />
           </div>
         )}
@@ -273,15 +266,15 @@ export default function CapturePage() {
         <div className="flex justify-center gap-2">
           <button
             onClick={() => setShowGuide(!showGuide)}
-            className={`text-xs px-3 py-1.5 rounded-full font-bold transition ${showGuide ? 'bg-pink-400/50 text-white' : 'bg-white/10 text-white/50'}`}
+            className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition ${showGuide ? 'bg-indigo-500/60 text-white' : 'bg-white/10 text-white/40'}`}
           >
-            ガイド {showGuide ? 'ON' : 'OFF'}
+            Guide {showGuide ? 'ON' : 'OFF'}
           </button>
           <button
             onClick={() => setShowGrid(!showGrid)}
-            className={`text-xs px-3 py-1.5 rounded-full font-bold transition ${showGrid ? 'bg-red-400/50 text-white' : 'bg-white/10 text-white/50'}`}
+            className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition ${showGrid ? 'bg-indigo-500/60 text-white' : 'bg-white/10 text-white/40'}`}
           >
-            グリッド {showGrid ? 'ON' : 'OFF'}
+            Grid {showGrid ? 'ON' : 'OFF'}
           </button>
         </div>
 
@@ -290,9 +283,9 @@ export default function CapturePage() {
           <button
             onClick={step === 'before' ? handleCaptureBefore : handleCaptureAfter}
             disabled={!isReady}
-            className="w-18 h-18 rounded-full border-4 border-pink-300 flex items-center justify-center disabled:opacity-30 shadow-lg shadow-pink-500/30"
+            className="w-18 h-18 rounded-full border-[3px] border-white/60 flex items-center justify-center disabled:opacity-30 shadow-lg"
           >
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-300 to-rose-400 active:from-pink-400 active:to-rose-500 transition" />
+            <div className="w-14 h-14 rounded-full bg-white active:bg-slate-200 transition" />
           </button>
         </div>
       </div>
