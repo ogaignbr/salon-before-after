@@ -2,6 +2,18 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
+const CHECKOUT_LOGIN_ID_KEY = 'subscribe:checkout-login-id';
+const CHECKOUT_LOGIN_ID_SAVED_AT_KEY = 'subscribe:checkout-login-id-saved-at';
+
+function saveCheckoutLoginId(loginId: string) {
+  try {
+    localStorage.setItem(CHECKOUT_LOGIN_ID_KEY, loginId);
+    localStorage.setItem(CHECKOUT_LOGIN_ID_SAVED_AT_KEY, String(Date.now()));
+  } catch {
+    // ignore storage failures
+  }
+}
+
 export default function SignupPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -56,6 +68,11 @@ export default function SignupPage() {
         const msg = (data?.error as string) || '登録処理に失敗しました。時間をおいてもう一度お試しください。';
         setMessage(msg);
         return;
+      }
+
+      const createdLoginId = data.loginId;
+      if (typeof createdLoginId === 'string' && /^\d{4}$/.test(createdLoginId)) {
+        saveCheckoutLoginId(createdLoginId);
       }
 
       // Stripe決済ページへリダイレクト
