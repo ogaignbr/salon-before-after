@@ -189,15 +189,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!/^\d{4}$/.test(pin)) return { error: '暗証番号は4桁の数字で入力してください。' };
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password: `PIN-${pin}`,
-      });
-      if (error) return { error: 'メールアドレスまたは暗証番号が違います。' };
+      const { data, error } = await invokeWithTimeout(
+        supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password: `PIN-${pin}`,
+        }),
+        FUNCTION_INVOKE_TIMEOUT_MS,
+      );
+      if (error || !data?.user) return { error: 'メールアドレスまたは暗証番号が違います。' };
+
+      // トライアル期間終了/サブスク無効ならこの暗証番号でのログインを遮断する
+      const { data: sub } = await invokeWithTimeout(
+        Promise.resolve(
+          supabase
+            .from('subscriptions')
+            .select('status, trial_end')
+            .eq('user_id', data.user.id)
+            .maybeSingle(),
+        ),
+        FUNCTION_INVOKE_TIMEOUT_MS,
+      );
+
+      if (sub) {
+        const trialEnd = sub.trial_end ? new Date(sub.trial_end as string) : null;
+        const trialExpired = sub.status === 'trialing'
+          && trialEnd
+          && trialEnd.getTime() <= Date.now();
+        const blocked = sub.status === 'expired'
+          || sub.status === 'canceled'
+          || sub.status === 'past_due'
+          || trialExpired;
+        if (blocked) {
+          await supabase.auth.signOut();
+          return {
+            error: 'トライアル期間が終了したため、現在の暗証番号は使用できません。再度カード登録を行ってください。',
+          };
+        }
+      }
 
       return { error: null };
-    } catch {
-      return { error: '通信に失敗しました。時間をおいてもう一度お試しください。' };
+    } catch (error) {
+      return { error: timeoutErrorMessage(error) };
     }
   }, []);
 
@@ -253,21 +285,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const pinHash = await hashPin(nextSecretCode);
 
-      const { error: profileError } = await supabase
-        .from('member_profiles')
-        .update({
-          pin_hash: pinHash,
-          must_change_pin: false,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id);
-      if (profileError) return { error: profileError.message };
-
       const { error: authError } = await invokeWithTimeout(
         supabase.auth.updateUser({ password: `PIN-${nextSecretCode}` }),
         FUNCTION_INVOKE_TIMEOUT_MS,
       );
       if (authError) return { error: authError.message };
+
+      const { error: profileError } = await invokeWithTimeout(
+        Promise.resolve(
+          supabase
+            .from('member_profiles')
+            .update({
+              pin_hash: pinHash,
+              must_change_pin: false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', user.id),
+        ),
+        FUNCTION_INVOKE_TIMEOUT_MS,
+      );
+      if (profileError) return { error: profileError.message };
 
       setNeedsPinChange(false);
       return { error: null };

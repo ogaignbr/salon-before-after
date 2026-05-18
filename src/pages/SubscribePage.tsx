@@ -1,16 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const SIGNUP_CHECKOUT_EMAIL_KEY = 'signup:checkout-email';
-
-function readCheckoutEmail() {
-  try {
-    return localStorage.getItem(SIGNUP_CHECKOUT_EMAIL_KEY);
-  } catch {
-    return null;
-  }
-}
 
 function clearCheckoutEmail() {
   try {
@@ -26,55 +18,21 @@ function checkoutStageLabel(progress: number) {
   return '決済ページへ移動中';
 }
 
-function postCheckoutStageLabel(progress: number) {
-  if (progress < 40) return '通信確認中';
-  if (progress < 80) return '決済反映待ち';
-  return '利用開始準備中';
-}
-
 export default function SubscribePage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const {
-    user,
     subscription,
-    hasStripeSubscription,
     signOut,
-    signIn,
     refreshSubscription,
     startCheckout,
   } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [checkoutProgress, setCheckoutProgress] = useState(0);
-  const [postCheckoutProgress, setPostCheckoutProgress] = useState(0);
   const [message, setMessage] = useState('');
-  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const result = params.get('result');
   const isSuccess = result === 'success';
   const checkoutStatusLabel = checkoutStageLabel(checkoutProgress);
-  const postCheckoutStatusLabel = postCheckoutStageLabel(postCheckoutProgress);
-
-  const refreshRef = useRef(refreshSubscription);
-  refreshRef.current = refreshSubscription;
-
-  useEffect(() => {
-    if (!isSuccess || user) return;
-    const email = readCheckoutEmail();
-    if (!email) return;
-
-    let cancelled = false;
-    const autoSignIn = async () => {
-      const { error } = await signIn(email, '0000');
-      if (!cancelled && !error) {
-        clearCheckoutEmail();
-      }
-    };
-    void autoSignIn();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isSuccess, user, signIn]);
 
   useEffect(() => {
     if (!submitting) {
@@ -93,48 +51,6 @@ export default function SubscribePage() {
     return () => window.clearInterval(timer);
   }, [submitting]);
 
-  useEffect(() => {
-    if (!isSuccess || hasStripeSubscription) {
-      setPostCheckoutProgress(hasStripeSubscription ? 100 : 0);
-      return;
-    }
-    setPostCheckoutProgress(18);
-    const timer = window.setInterval(() => {
-      setPostCheckoutProgress((current) => {
-        if (current >= 96) return current;
-        if (current < 60) return Math.min(96, current + 7);
-        if (current < 85) return Math.min(96, current + 4);
-        return Math.min(96, current + 2);
-      });
-    }, 350);
-    return () => window.clearInterval(timer);
-  }, [isSuccess, hasStripeSubscription]);
-
-  // Stripe完了後: ログインしていなければ自動ログイン試行 + サブスク情報ポーリング
-  useEffect(() => {
-    if (!isSuccess) return;
-    let cancelled = false;
-
-    const boot = async () => {
-      // ユーザーがログインしていない場合、セッション復元を待つ
-      if (!user) {
-        // AuthProviderの初期化完了を少し待つ
-        await new Promise((r) => setTimeout(r, 2000));
-      }
-
-      // ポーリングでサブスク反映を確認
-      for (let i = 0; i < 10; i += 1) {
-        if (cancelled) return;
-        await refreshRef.current();
-        if (cancelled) return;
-        await new Promise((r) => setTimeout(r, 1500));
-      }
-    };
-
-    void boot();
-    return () => { cancelled = true; };
-  }, [isSuccess, user]);
-
   const handleSubscribe = async () => {
     setMessage('');
     setSubmitting(true);
@@ -152,20 +68,19 @@ export default function SubscribePage() {
     }
   };
 
-  const onConfirmClose = async () => {
-    setShowCloseConfirm(false);
+  const goToLogin = async () => {
     clearCheckoutEmail();
     setParams({}, { replace: true });
     await signOut();
     navigate('/');
   };
 
-  // ===== Stripe決済完了後の画面（ID表示） =====
+  // ===== Stripe決済完了画面（シンプル表示） =====
   if (isSuccess) {
     return (
       <div className="min-h-dvh bg-gradient-to-b from-pink-100 via-pink-50 to-white flex items-center justify-center px-6">
         <div className="w-full max-w-sm bg-white/90 rounded-3xl shadow-xl border border-pink-100 p-6 relative">
-          <div className="text-center mb-2">
+          <div className="text-center mb-3">
             <div className="text-4xl mb-1">&#127881;</div>
             <h1 className="text-2xl font-black text-pink-500">登録が完了しました！</h1>
           </div>
@@ -175,65 +90,22 @@ export default function SubscribePage() {
             期間内に解約すれば請求は発生しません。
           </p>
 
-          <div className="mt-5 text-center py-4">
-            <div className="inline-block animate-pulse text-pink-400 text-sm font-bold">{postCheckoutStatusLabel}</div>
-            <p className="text-[10px] text-pink-300 mt-2">決済の反映まで少しお待ちください</p>
-            <div className="mt-3 w-full bg-pink-100 rounded-full h-2 overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-pink-400 to-rose-400 transition-all duration-300"
-                style={{ width: `${postCheckoutProgress}%` }}
-              />
-            </div>
-            <p className="mt-1 text-[10px] font-bold text-pink-400">{postCheckoutProgress}%</p>
-          </div>
-
-          {!hasStripeSubscription && (
-            <p className="mt-3 text-center text-[11px] text-pink-400">
-              サブスクリプションの反映に少し時間がかかる場合があります。
+          <div className="mt-5 bg-pink-50 rounded-2xl p-4 border-2 border-pink-200 text-center">
+            <p className="text-xs font-bold text-pink-500">ログイン情報</p>
+            <p className="mt-2 text-sm font-bold text-rose-500">
+              登録メールアドレス ＋ 暗証番号「0000」
             </p>
-          )}
-
-          <div className="mt-4 bg-rose-50 rounded-xl p-3 border border-rose-200">
-            <p className="text-[11px] text-rose-500 font-bold text-center leading-relaxed">
-              &#9888; この画面を閉じるとログイン画面へ戻ります。<br />
-              以後はメールアドレスと暗証番号でログインしてください。
+            <p className="mt-2 text-[11px] text-pink-400 leading-relaxed">
+              初回ログイン後、お好みの暗証番号に変更してください。
             </p>
           </div>
 
           <button
-            onClick={() => setShowCloseConfirm(true)}
-            className="mt-5 w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform"
+            onClick={goToLogin}
+            className="mt-6 w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform"
           >
-            ログイン画面へ
+            ログイン画面へ進む
           </button>
-
-          {showCloseConfirm && (
-            <div className="absolute inset-0 bg-black/40 rounded-3xl flex items-center justify-center px-4">
-              <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-2xl">
-                <p className="text-sm font-bold text-pink-600 text-center leading-relaxed">
-                  決済反映後、ログイン画面へ進みます。<br />
-                  メールアドレスと暗証番号をご準備ください。
-                </p>
-                <div className="mt-5 flex gap-2">
-                  <button
-                    onClick={() => setShowCloseConfirm(false)}
-                    className="flex-1 py-2 bg-white border border-pink-300 text-pink-400 text-sm font-black rounded-xl"
-                  >
-                    まだ
-                  </button>
-                  <button
-                    onClick={onConfirmClose}
-                    className="flex-1 py-2 bg-gradient-to-r from-pink-400 to-rose-400 text-white text-sm font-black rounded-xl"
-                  >
-                    はい
-                  </button>
-                </div>
-                <p className="text-[10px] text-pink-400 text-center mt-3">
-                  「はい」を押すとログイン画面に進みます。
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     );

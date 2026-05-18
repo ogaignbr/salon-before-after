@@ -12,7 +12,13 @@ export default function LoginPage() {
     needsPinChange,
     completeInitialPinChange,
   } = useAuth();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => {
+    try {
+      return localStorage.getItem('signup:checkout-email') ?? '';
+    } catch {
+      return '';
+    }
+  });
   const [pin, setPin] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
