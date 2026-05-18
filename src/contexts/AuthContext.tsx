@@ -7,6 +7,28 @@ import type { SubscriptionStatus } from '../types';
 const NOT_CONFIGURED_MESSAGE =
   'サーバー設定が未完了のため、現在ログインできません。管理者にお問い合わせください。';
 const AUTH_BOOT_TIMEOUT_MS = 8000;
+const FUNCTION_INVOKE_TIMEOUT_MS = 12000;
+
+function timeoutErrorMessage(error: unknown) {
+  if (error instanceof Error && /timeout/i.test(error.message)) {
+    return '通信がタイムアウトしました。電波状態を確認して、もう一度お試しください。';
+  }
+  return '通信に失敗しました。時間をおいてもう一度お試しください。';
+}
+
+async function invokeWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeoutId: number | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      reject(new Error('invoke timeout'));
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+}
 
 type AuthState = {
   user: User | null;
@@ -269,20 +291,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!priceId) return { error: 'Stripe価格IDが設定されていません。' };
 
     const baseUrl = window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, '');
-    const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-      body: {
-        customerEmail: user.email,
-        userId: user.id,
-        priceId,
-        successUrl: `${baseUrl}/subscribe?result=success`,
-        cancelUrl: `${baseUrl}/subscribe?result=cancel`,
-      },
-    });
-    if (error || !data?.url) {
-      return { error: '決済ページの作成に失敗しました。' };
+    try {
+      const { data, error } = await invokeWithTimeout(
+        supabase.functions.invoke('create-checkout-session', {
+          body: {
+            customerEmail: user.email,
+            userId: user.id,
+            priceId,
+            successUrl: `${baseUrl}/subscribe?result=success`,
+            cancelUrl: `${baseUrl}/subscribe?result=cancel`,
+          },
+        }),
+        FUNCTION_INVOKE_TIMEOUT_MS,
+      );
+
+      if (error || !data?.url) {
+        return { error: '決済ページの作成に失敗しました。' };
+      }
+      window.location.assign(data.url as string);
+      return { error: null };
+    } catch (error) {
+      console.warn('[checkout] failed to create session', error);
+      return { error: timeoutErrorMessage(error) };
     }
-    window.location.href = data.url as string;
-    return { error: null };
   };
 
   const openCustomerPortal = async () => {
