@@ -12,7 +12,7 @@ export default function LoginPage() {
     needsPinChange,
     completeInitialPinChange,
   } = useAuth();
-  const [loginId, setLoginId] = useState('');
+  const [email, setEmail] = useState('');
   const [pin, setPin] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -35,17 +35,17 @@ export default function LoginPage() {
     setMessage('');
 
     try {
-      const { error } = await signIn(loginId, pin);
+      const { error } = await signIn(email, pin);
       if (error) {
         setSubmitting(false);
-        setMessage('IDまたはPINが違います。');
+        setMessage('メールアドレスまたは暗証番号が違います。');
         return;
       }
 
       if (needsPinChange || pin === '0000') {
         setSubmitting(false);
         setShowPinChange(true);
-        setMessage('初期PINのため、先にPIN変更を行ってください。');
+        setMessage('初期暗証番号のため、先に暗証番号変更を行ってください。');
         return;
       }
 
@@ -61,11 +61,11 @@ export default function LoginPage() {
     e.preventDefault();
     setMessage('');
     if (!isFourDigits(newPin) || !isFourDigits(newPinConfirm)) {
-      setMessage('PINは4桁の数字で入力してください。');
+      setMessage('暗証番号は4桁の数字で入力してください。');
       return;
     }
     if (newPin !== newPinConfirm) {
-      setMessage('新しいPINが一致しません。');
+      setMessage('新しい暗証番号が一致しません。');
       return;
     }
 
@@ -107,21 +107,18 @@ export default function LoginPage() {
           {!needsPinChange && !showPinChange ? (
             <form className="space-y-4" onSubmit={onLogin}>
               <label className="block">
-                <span className="text-xs font-bold text-pink-400">ログインID（4桁）</span>
+                <span className="text-xs font-bold text-pink-400">メールアドレス</span>
                 <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="\d{4}"
-                  maxLength={4}
-                  value={loginId}
-                  onChange={(e) => setLoginId(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="mt-1 w-full rounded-xl border border-pink-200 px-4 py-3 text-base text-center tracking-[0.3em] font-bold outline-none focus:ring-2 focus:ring-pink-300"
-                  placeholder="1234"
+                  className="mt-1 w-full rounded-xl border border-pink-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-pink-300"
+                  placeholder="example@salon.com"
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-bold text-pink-400">PINコード（4桁）</span>
+                <span className="text-xs font-bold text-pink-400">暗証番号（4桁）</span>
                 <input
                   type="password"
                   inputMode="numeric"
@@ -146,10 +143,10 @@ export default function LoginPage() {
           ) : (
             <form className="space-y-4" onSubmit={onChangeInitialPin}>
               <p className="text-xs text-rose-500 font-bold text-center">
-                初回ログインのためPIN変更が必要です
+                初回ログインのため暗証番号変更が必要です
               </p>
               <label className="block">
-                <span className="text-xs font-bold text-pink-400">新しいPIN（4桁）</span>
+                <span className="text-xs font-bold text-pink-400">新しい暗証番号（4桁）</span>
                 <input
                   type="password"
                   inputMode="numeric"
@@ -162,7 +159,7 @@ export default function LoginPage() {
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-bold text-pink-400">新しいPIN（確認）</span>
+                <span className="text-xs font-bold text-pink-400">新しい暗証番号（確認）</span>
                 <input
                   type="password"
                   inputMode="numeric"
@@ -179,7 +176,7 @@ export default function LoginPage() {
                 disabled={submitting}
                 className="w-full py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-black rounded-2xl shadow-md active:scale-95 transition-transform disabled:opacity-50"
               >
-                {submitting ? '変更中...' : 'PINを変更して続行'}
+                {submitting ? '変更中...' : '暗証番号を変更して続行'}
               </button>
             </form>
           )}

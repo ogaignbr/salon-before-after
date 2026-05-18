@@ -38,16 +38,16 @@ type AuthState = {
   hasStripeSubscription: boolean;
   loading: boolean;
   needsPinChange: boolean;
-  signIn: (loginId: string, pin: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, pin: string) => Promise<{ error: string | null }>;
   signUp: (email: string) => Promise<{ error: string | null; loginId: string | null }>;
   signOut: () => Promise<void>;
   completeInitialPinChange: (
-    currentPin: string,
-    nextPin: string,
+    currentSecretCode: string,
+    nextSecretCode: string,
   ) => Promise<{ error: string | null }>;
   forceResetPin: (
     loginId: string,
-    nextPin: string,
+    nextSecretCode: string,
     adminKey: string,
   ) => Promise<{ error: string | null; message: string | null }>;
   refreshSubscription: () => Promise<void>;
@@ -183,24 +183,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [fetchProfileAndSubscription]);
 
-  const signIn = useCallback(async (lid: string, pin: string) => {
+  const signIn = useCallback(async (email: string, pin: string) => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE };
+    if (!email.trim()) return { error: 'メールアドレスを入力してください。' };
+    if (!/^\d{4}$/.test(pin)) return { error: '暗証番号は4桁の数字で入力してください。' };
 
     try {
-      const { data: resolved, error: resolveError } = await supabase.functions.invoke(
-        'resolve-login-id',
-        { body: { loginId: lid, pin } },
-      );
-
-      if (resolveError || !resolved?.email) {
-        return { error: 'IDまたはPINが違います。' };
-      }
-
       const { error } = await supabase.auth.signInWithPassword({
-        email: resolved.email as string,
+        email: email.trim().toLowerCase(),
         password: `PIN-${pin}`,
       });
-      if (error) return { error: 'IDまたはPINが違います。' };
+      if (error) return { error: 'メールアドレスまたは暗証番号が違います。' };
 
       return { error: null };
     } catch {
@@ -252,13 +245,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setHasStripeSubscription(false);
   }, []);
 
-  const completeInitialPinChange = useCallback(async (currentPin: string, nextPin: string) => {
-    if (!user || !loginId) return { error: 'ログイン状態が無効です。' };
-    if (!/^\d{4}$/.test(nextPin)) return { error: '新しいPINは4桁の数字で入力してください。' };
-    if (currentPin === nextPin) return { error: '現在のPINと異なる番号を設定してください。' };
+  const completeInitialPinChange = useCallback(async (currentSecretCode: string, nextSecretCode: string) => {
+    if (!user) return { error: 'ログイン状態が無効です。再度ログインしてください。' };
+    if (!/^\d{4}$/.test(nextSecretCode)) return { error: '新しい暗証番号は4桁の数字で入力してください。' };
+    if (currentSecretCode === nextSecretCode) return { error: '現在の暗証番号と異なる番号を設定してください。' };
 
     try {
-      const pinHash = await hashPin(nextPin);
+      const pinHash = await hashPin(nextSecretCode);
 
       const { error: profileError } = await supabase
         .from('member_profiles')
@@ -270,24 +263,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('user_id', user.id);
       if (profileError) return { error: profileError.message };
 
-      const { error: authError } = await supabase.auth.updateUser({ password: `PIN-${nextPin}` });
+      const { error: authError } = await invokeWithTimeout(
+        supabase.auth.updateUser({ password: `PIN-${nextSecretCode}` }),
+        FUNCTION_INVOKE_TIMEOUT_MS,
+      );
       if (authError) return { error: authError.message };
 
       setNeedsPinChange(false);
       return { error: null };
-    } catch {
-      return { error: '通信に失敗しました。時間をおいてもう一度お試しください。' };
+    } catch (error) {
+      return { error: timeoutErrorMessage(error) };
     }
-  }, [user, loginId]);
+  }, [user]);
 
-  const forceResetPin = useCallback(async (lid: string, nextPin: string, adminKey: string) => {
+  const forceResetPin = useCallback(async (lid: string, nextSecretCode: string, adminKey: string) => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE, message: null };
     try {
       const { data, error } = await supabase.functions.invoke('reset-pin-admin', {
-        body: { loginId: lid, nextPin, adminKey },
+        body: { loginId: lid, nextPin: nextSecretCode, adminKey },
       });
       if (error || !data?.success) {
-        return { error: data?.message ?? error?.message ?? 'PINの初期化に失敗しました。', message: null };
+        return { error: data?.message ?? error?.message ?? '暗証番号の初期化に失敗しました。', message: null };
       }
       return { error: null, message: data.message as string };
     } catch {

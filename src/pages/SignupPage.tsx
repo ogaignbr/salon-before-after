@@ -1,14 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
-const CHECKOUT_LOGIN_ID_KEY = 'subscribe:checkout-login-id';
-const CHECKOUT_LOGIN_ID_SAVED_AT_KEY = 'subscribe:checkout-login-id-saved-at';
+const SIGNUP_CHECKOUT_EMAIL_KEY = 'signup:checkout-email';
 
-function saveCheckoutLoginId(loginId: string) {
+function saveCheckoutEmail(email: string) {
   try {
-    localStorage.setItem(CHECKOUT_LOGIN_ID_KEY, loginId);
-    localStorage.setItem(CHECKOUT_LOGIN_ID_SAVED_AT_KEY, String(Date.now()));
+    localStorage.setItem(SIGNUP_CHECKOUT_EMAIL_KEY, email);
   } catch {
     // ignore storage failures
   }
@@ -16,9 +15,21 @@ function saveCheckoutLoginId(loginId: string) {
 
 export default function SignupPage() {
   const navigate = useNavigate();
+  const { user, hasStripeSubscription, needsPinChange, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user) return;
+    if (needsPinChange) return;
+    if (hasStripeSubscription) {
+      navigate('/home', { replace: true });
+      return;
+    }
+    navigate('/subscribe', { replace: true });
+  }, [user, hasStripeSubscription, needsPinChange, loading, navigate]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,10 +81,7 @@ export default function SignupPage() {
         return;
       }
 
-      const createdLoginId = data.loginId;
-      if (typeof createdLoginId === 'string' && /^\d{4}$/.test(createdLoginId)) {
-        saveCheckoutLoginId(createdLoginId);
-      }
+      saveCheckoutEmail(email.trim().toLowerCase());
 
       // Stripe決済ページへリダイレクト
       window.location.assign(data.url as string);
@@ -127,7 +135,7 @@ export default function SignupPage() {
           </button>
           <p className="text-[11px] text-pink-400 leading-relaxed text-center">
             Stripeの安全な決済ページでカード情報を登録します。<br />
-            完了後にログインIDが発行されます。
+            完了後はメールアドレスと暗証番号でログインできます。
           </p>
         </form>
 

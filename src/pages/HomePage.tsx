@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { signOut, loginId, subscription, trialDaysLeft, openCustomerPortal } = useAuth();
+  const { signOut, user, subscription, trialDaysLeft, openCustomerPortal } = useAuth();
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-pink-100 via-pink-50 to-white flex flex-col items-center relative overflow-hidden">
@@ -21,7 +21,7 @@ export default function HomePage() {
 
       {/* Top bar */}
       <div className="w-full px-4 pt-4 flex items-center justify-between">
-        <p className="text-pink-300 font-bold text-xs">ID: {loginId ?? '----'}</p>
+        <p className="text-pink-300 font-bold text-xs">メール: {user?.email ?? '----'}</p>
         <button
           onClick={async () => {
             await signOut();
