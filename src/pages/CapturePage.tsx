@@ -6,6 +6,7 @@ import GhostOverlay from '../components/GhostOverlay';
 import GridOverlay from '../components/GridOverlay';
 import { db } from '../lib/db';
 import type { ShootingPart } from '../types';
+import { AppFrame, AppHeader } from '../components/AppFrame';
 
 export default function CapturePage() {
   const navigate = useNavigate();
@@ -91,66 +92,55 @@ export default function CapturePage() {
 
   if (step === 'setup') {
     return (
-      <div className="min-h-dvh bg-slate-50 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center px-4 py-3 bg-white border-b border-slate-100">
-          <button onClick={() => navigate('/home')} className="text-indigo-600 font-medium text-sm flex items-center gap-1">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            Back
-          </button>
-          <h1 className="flex-1 text-center font-bold text-slate-800 text-sm">Capture Settings</h1>
-          <div className="w-10" />
-        </div>
+      <AppFrame>
+        <AppHeader title="撮影設定" onBack={() => navigate('/home')} backLabel="ホーム" />
 
-        <div className="flex-1 px-6 py-8 space-y-6 animate-slide-up">
+        <div className="flex-1 space-y-5 px-1 pb-2 pt-1 animate-slide-up">
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Client Name
+            <label className="text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-300">
+              顧客名
             </label>
             <input
               type="text"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="e.g. Hanako Yamada"
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 bg-white font-medium text-slate-700 placeholder-slate-300 transition-all"
+              placeholder="例: 山田 花子"
+              className="w-full rounded-[12px] border border-slate-200/80 bg-white/80 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition-all placeholder:text-slate-300 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Target Area
+            <label className="text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-300">
+              撮影部位
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setPart('face')}
                 className={`py-4 rounded-xl text-sm font-semibold transition-all ${
                   part === 'face'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'bg-white text-slate-400 border border-slate-200 hover:border-indigo-300'
+                    ? 'bg-[linear-gradient(135deg,#5f7bff_0%,#6a60ff_48%,#8a49ff_100%)] text-white shadow-[0_16px_30px_-20px_rgba(86,89,255,0.95)]'
+                    : 'bg-white/75 text-slate-500 border border-indigo-200/60 hover:border-indigo-300/70 dark:bg-slate-900/45 dark:text-slate-200 dark:border-indigo-300/20'
                 }`}
               >
-                Face
+                顔
               </button>
               <button
                 onClick={() => setPart('body')}
                 className={`py-4 rounded-xl text-sm font-semibold transition-all ${
                   part === 'body'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'bg-white text-slate-400 border border-slate-200 hover:border-indigo-300'
+                    ? 'bg-[linear-gradient(135deg,#5f7bff_0%,#6a60ff_48%,#8a49ff_100%)] text-white shadow-[0_16px_30px_-20px_rgba(86,89,255,0.95)]'
+                    : 'bg-white/75 text-slate-500 border border-indigo-200/60 hover:border-indigo-300/70 dark:bg-slate-900/45 dark:text-slate-200 dark:border-indigo-300/20'
                 }`}
               >
-                Body
+                体
               </button>
             </div>
           </div>
 
           {/* Consent area */}
-          <div className="bg-white rounded-xl p-4 border border-slate-200 space-y-3">
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Please obtain consent from the client for photo capture and data storage before proceeding.
-              All data is stored locally on this device only and is never sent to external servers.
+          <div className="rounded-[14px] border border-white/65 bg-white/72 p-4 shadow-[0_14px_30px_-24px_rgba(84,96,168,0.65)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)] space-y-3">
+            <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+              撮影前に必ずお客様の同意を得てください。写真データはこの端末内に保存され、外部サーバーには送信されません。
             </p>
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input
@@ -159,22 +149,22 @@ export default function CapturePage() {
                 onChange={(e) => setConsent(e.target.checked)}
                 className="mt-0.5 w-4 h-4 accent-indigo-600 rounded flex-shrink-0"
               />
-              <span className="text-[11px] text-slate-600 leading-snug">
-                Client consent obtained.
+              <span className="text-[11px] leading-snug text-slate-600 dark:text-slate-300">
+                お客様の同意を取得しました。
                 <button
                   type="button"
                   onClick={() => navigate('/privacy')}
-                  className="text-indigo-500 ml-1 hover:text-indigo-700"
+                  className="ml-1 text-indigo-500 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200"
                 >
-                  Privacy
+                  プライバシー
                 </button>
                 {' / '}
                 <button
                   type="button"
                   onClick={() => navigate('/terms')}
-                  className="text-indigo-500 hover:text-indigo-700"
+                  className="text-indigo-500 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200"
                 >
-                  Terms
+                  利用規約
                 </button>
               </span>
             </label>
@@ -183,12 +173,12 @@ export default function CapturePage() {
           <button
             onClick={() => setStep('before')}
             disabled={!consent}
-            className="w-full py-4 bg-indigo-600 text-white font-semibold rounded-xl shadow-md text-base hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-30 disabled:scale-100"
+            className="sheen-wrap w-full rounded-[12px] border border-indigo-300/30 bg-[linear-gradient(135deg,#5f7bff_0%,#6a60ff_48%,#8a49ff_100%)] py-4 text-base font-bold text-white shadow-[0_16px_30px_-20px_rgba(86,89,255,0.95)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-30 disabled:scale-100"
           >
-            Proceed to Before Shot
+            撮影を開始する
           </button>
         </div>
-      </div>
+      </AppFrame>
     );
   }
 
@@ -210,7 +200,7 @@ export default function CapturePage() {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          Back
+          戻る
         </button>
         <span className="font-semibold text-sm tracking-wide">
           {step === 'before' ? 'BEFORE' : 'AFTER'}
@@ -246,11 +236,14 @@ export default function CapturePage() {
         )}
       </div>
 
+      <div className="pointer-events-none absolute left-5 top-[18%] z-10 h-2 w-2 rounded-full bg-indigo-300/60 animate-pulse" />
+      <div className="pointer-events-none absolute right-7 top-[38%] z-10 h-1.5 w-1.5 rounded-full bg-violet-300/70 animate-pulse" />
+
       {/* Controls */}
       <div className="relative z-20 bg-gradient-to-t from-black/95 to-black/70 px-4 py-4 space-y-3">
         {step === 'after' && (
           <div className="flex items-center gap-3 px-2">
-            <span className="text-white/70 text-xs font-medium whitespace-nowrap">Overlay</span>
+            <span className="text-white/70 text-xs font-medium whitespace-nowrap">重ね表示</span>
             <input
               type="range"
               min="0"
@@ -268,13 +261,13 @@ export default function CapturePage() {
             onClick={() => setShowGuide(!showGuide)}
             className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition ${showGuide ? 'bg-indigo-500/60 text-white' : 'bg-white/10 text-white/40'}`}
           >
-            Guide {showGuide ? 'ON' : 'OFF'}
+            ガイド {showGuide ? 'ON' : 'OFF'}
           </button>
           <button
             onClick={() => setShowGrid(!showGrid)}
             className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition ${showGrid ? 'bg-indigo-500/60 text-white' : 'bg-white/10 text-white/40'}`}
           >
-            Grid {showGrid ? 'ON' : 'OFF'}
+            グリッド {showGrid ? 'ON' : 'OFF'}
           </button>
         </div>
 

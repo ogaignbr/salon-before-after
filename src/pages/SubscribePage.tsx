@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { AppFrame } from '../components/AppFrame';
 
 const SIGNUP_CHECKOUT_EMAIL_KEY = 'signup:checkout-email';
 
@@ -77,97 +78,100 @@ export default function SubscribePage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-dvh bg-slate-50 flex items-center justify-center px-6">
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-slate-200/60 p-6">
+      <AppFrame>
+        <div className="mx-auto flex w-full max-w-sm flex-1 items-center">
+          <div className="w-full rounded-[16px] border border-white/65 bg-white/75 p-6 shadow-[0_18px_36px_-28px_rgba(68,82,147,0.75)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_20px_42px_-30px_rgba(30,46,105,0.9)]">
           <div className="text-center mb-4">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-50 flex items-center justify-center">
-              <svg className="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-emerald-200/70 bg-emerald-50/80 dark:border-emerald-300/20 dark:bg-emerald-400/10">
+              <svg className="h-6 w-6 text-emerald-500 dark:text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h1 className="text-xl font-bold text-slate-800">Registration Complete</h1>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">登録が完了しました</h1>
           </div>
 
-          <p className="text-xs text-slate-500 text-center leading-relaxed">
-            Free for 7 days. Monthly billing of 980 JPY starts on day 8.
-            <br />Cancel before then to avoid charges.
+          <p className="text-center text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+            7日間は無料でご利用いただけます。8日目から月額980円が発生します。
+            <br />課金開始前の解約は、利用規約ページから可能です。
           </p>
 
-          <div className="mt-5 bg-indigo-50 rounded-xl p-4 border border-indigo-100 text-center">
-            <p className="text-xs font-semibold text-indigo-600">Login Credentials</p>
-            <p className="mt-2 text-sm font-semibold text-slate-700">
-              Your email + PIN: 0000
+          <div className="mt-5 rounded-[12px] border border-indigo-100/80 bg-indigo-50/80 p-4 text-center dark:border-indigo-300/20 dark:bg-indigo-500/10">
+            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-300">ログイン情報</p>
+            <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-100">
+              登録メール + PIN: 0000
             </p>
-            <p className="mt-2 text-[11px] text-slate-500 leading-relaxed">
-              You will be asked to change your PIN on first login.
+            <p className="mt-2 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+              初回ログイン時にPIN変更が求められます。
             </p>
           </div>
 
           <button
             onClick={goToLogin}
-            className="mt-6 w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all"
+            className="sheen-wrap mt-6 w-full rounded-[12px] border border-indigo-300/30 bg-[linear-gradient(135deg,#5f7bff_0%,#6a60ff_48%,#8a49ff_100%)] py-3 font-bold text-white shadow-[0_16px_30px_-20px_rgba(86,89,255,0.95)] transition-all hover:brightness-105 active:scale-[0.99]"
           >
-            Go to Sign In
+            ログイン画面へ
           </button>
         </div>
-      </div>
+        </div>
+      </AppFrame>
     );
   }
 
   return (
-    <div className="min-h-dvh bg-slate-50 flex items-center justify-center px-6">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-slate-200/60 p-6 text-center">
-        <div className="w-12 h-12 mx-auto mb-4 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md">
-          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+    <AppFrame>
+      <div className="mx-auto flex w-full max-w-sm flex-1 items-center">
+        <div className="w-full rounded-[16px] border border-white/65 bg-white/75 p-6 text-center shadow-[0_18px_36px_-28px_rgba(68,82,147,0.75)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_20px_42px_-30px_rgba(30,46,105,0.9)]">
+        <div className="relative mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[12px] border border-indigo-200/70 bg-white/85 dark:border-indigo-300/20 dark:bg-slate-900/70">
+          <svg className="h-6 w-6 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 9a2 2 0 012-2h1.1a2 2 0 001.62-.826l.56-.748A2 2 0 0112.88 5h2.24a2 2 0 011.6.8l.56.748A2 2 0 0018.9 7H20a2 2 0 012 2v7.5a2.5 2.5 0 01-2.5 2.5h-15A2.5 2.5 0 012 16.5V9a2 2 0 012-2h2z" />
+            <circle cx="12" cy="12.75" r="3.25" />
           </svg>
         </div>
-        <h1 className="text-xl font-bold text-slate-800">PitaCame</h1>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">ぴたカメ</h1>
 
         {subscription === 'expired'
           || subscription === 'canceled'
           || subscription === 'past_due' ? (
           <div className="mt-4 space-y-1">
-            <p className="text-sm text-slate-700 font-semibold">Subscription Inactive</p>
-            <p className="text-xs text-slate-400">Please register a payment method to continue.</p>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-100">サブスクが無効です</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">継続利用には支払い設定が必要です。</p>
           </div>
         ) : (
           <div className="mt-4 space-y-1">
-            <p className="text-sm text-slate-700 font-semibold">Payment Setup (7-day free trial)</p>
-            <p className="text-xs text-slate-400">Monthly billing of 980 JPY starts on day 8.</p>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-100">お支払い設定（7日間無料）</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">8日目から月額980円で継続します。</p>
           </div>
         )}
 
-        <div className="mt-5 bg-slate-50 rounded-xl p-4 border border-slate-200">
+        <div className="mt-5 rounded-[12px] border border-indigo-100/80 bg-indigo-50/80 p-4 dark:border-indigo-300/20 dark:bg-indigo-500/10">
           <div className="flex items-baseline justify-center gap-1">
-            <span className="text-2xl font-bold text-slate-800">980</span>
-            <span className="text-sm font-medium text-slate-500">JPY / mo</span>
+            <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">980</span>
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-300">円 / 月</span>
           </div>
-          <ul className="mt-3 text-xs text-slate-500 space-y-1.5 text-left">
+          <ul className="mt-3 space-y-1.5 text-left text-xs text-slate-600 dark:text-slate-300">
             <li className="flex items-center gap-2">
-              <svg className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="h-3.5 w-3.5 shrink-0 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              7 days free - cancel anytime
+              7日間無料・いつでも解約可
             </li>
             <li className="flex items-center gap-2">
-              <svg className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="h-3.5 w-3.5 shrink-0 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              Unlimited before/after captures
+              ビフォーアフター撮影は回数制限なし
             </li>
             <li className="flex items-center gap-2">
-              <svg className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="h-3.5 w-3.5 shrink-0 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              Ghost overlay & AI mosaic
+              ガイド重ね合わせ・AIモザイク
             </li>
             <li className="flex items-center gap-2">
-              <svg className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="h-3.5 w-3.5 shrink-0 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              Export & share comparisons
+              比較画像の書き出し・共有
             </li>
           </ul>
         </div>
@@ -175,19 +179,19 @@ export default function SubscribePage() {
         <button
           onClick={handleSubscribe}
           disabled={submitting}
-          className="mt-5 w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50"
+          className="sheen-wrap mt-5 w-full rounded-[12px] border border-indigo-300/30 bg-[linear-gradient(135deg,#5f7bff_0%,#6a60ff_48%,#8a49ff_100%)] py-3 font-bold text-white shadow-[0_16px_30px_-20px_rgba(86,89,255,0.95)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
         >
-          {submitting ? `${checkoutStatusLabel}... ${checkoutProgress}%` : 'Set Up Payment'}
+          {submitting ? `${checkoutStatusLabel}... ${checkoutProgress}%` : '支払いを設定する'}
         </button>
         {submitting ? (
           <>
-            <div className="mt-2 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
               <div
-                className="h-full bg-indigo-600 transition-all duration-300 rounded-full"
+                className="h-full rounded-full bg-indigo-600 transition-all duration-300 dark:bg-indigo-400"
                 style={{ width: `${checkoutProgress}%` }}
               />
             </div>
-            <p className="mt-1 text-[10px] text-slate-400 font-medium text-center">{checkoutStatusLabel}</p>
+            <p className="mt-1 text-center text-[10px] font-medium text-slate-400 dark:text-slate-500">{checkoutStatusLabel}</p>
           </>
         ) : null}
 
@@ -202,23 +206,19 @@ export default function SubscribePage() {
               setSubmitting(false);
             }
           }}
-          className="mt-3 w-full py-2 text-xs text-indigo-500 font-medium hover:text-indigo-700 transition-colors"
+          className="mt-3 w-full py-2 text-xs font-medium text-indigo-500 transition-colors hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200"
         >
-          Already registered? Tap to refresh
+          登録済みの方は状態を再読み込み
         </button>
 
         {message ? (
-          <p className="mt-3 text-xs font-medium text-red-500">{message}</p>
+          <p className="mt-3 text-xs font-medium text-rose-500">{message}</p>
         ) : null}
 
-        <div className="mt-4 flex justify-center gap-4">
-          <button onClick={() => navigate('/terms')} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
-            Terms
-          </button>
-          <span className="text-xs text-slate-300">|</span>
-          <button onClick={() => navigate('/privacy')} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
-            Privacy
-          </button>
+        <div className="mx-auto mt-4 flex w-fit items-center gap-3 rounded-full border border-white/55 bg-white/55 px-4 py-1.5 text-xs text-slate-500 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-400">
+          <button onClick={() => navigate('/terms')} className="transition-colors hover:text-slate-700 dark:hover:text-slate-200">利用規約</button>
+          <span className="text-slate-300 dark:text-slate-600">|</span>
+          <button onClick={() => navigate('/privacy')} className="transition-colors hover:text-slate-700 dark:hover:text-slate-200">プライバシー</button>
         </div>
 
         <button
@@ -226,11 +226,12 @@ export default function SubscribePage() {
             await signOut();
             navigate('/');
           }}
-          className="mt-3 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+          className="mt-3 text-xs text-slate-400 transition-colors hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
         >
-          Sign Out
+          ログアウト
         </button>
       </div>
-    </div>
+      </div>
+    </AppFrame>
   );
 }

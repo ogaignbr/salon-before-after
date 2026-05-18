@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { AppFrame } from '../components/AppFrame';
 
 const SIGNUP_CHECKOUT_EMAIL_KEY = 'signup:checkout-email';
 
@@ -86,99 +87,101 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-slate-50 flex items-center justify-center px-6">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-slate-200/60 p-6">
+    <AppFrame>
+      <div className="mx-auto flex w-full max-w-sm flex-1 items-center">
+        <div className="w-full rounded-[16px] border border-white/65 bg-white/75 p-6 shadow-[0_18px_36px_-28px_rgba(68,82,147,0.75)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_20px_42px_-30px_rgba(30,46,105,0.9)]">
         <div className="text-center mb-5">
-          <div className="w-12 h-12 mx-auto mb-3 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md">
-            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+          <div className="relative mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-[12px] border border-indigo-200/70 bg-white/85 dark:border-indigo-300/20 dark:bg-slate-900/70">
+            <svg className="h-6 w-6 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9a2 2 0 012-2h1.1a2 2 0 001.62-.826l.56-.748A2 2 0 0112.88 5h2.24a2 2 0 011.6.8l.56.748A2 2 0 0018.9 7H20a2 2 0 012 2v7.5a2.5 2.5 0 01-2.5 2.5h-15A2.5 2.5 0 012 16.5V9a2 2 0 012-2h2z" />
+              <circle cx="12" cy="12.75" r="3.25" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-slate-800">Create Account</h1>
-          <p className="text-xs text-slate-400 mt-1 font-medium">
-            Start with 7-day free trial
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">アカウント作成</h1>
+          <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+            7日間無料トライアルで開始
           </p>
         </div>
 
-        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-5">
+        <div className="mb-5 rounded-[12px] border border-indigo-100/70 bg-indigo-50/65 p-4 dark:border-indigo-300/20 dark:bg-indigo-500/10">
           <div className="flex items-baseline justify-center gap-1">
-            <span className="text-2xl font-bold text-slate-800">980</span>
-            <span className="text-sm font-medium text-slate-500">JPY / mo</span>
+            <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">980</span>
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-300">円 / 月</span>
           </div>
-          <ul className="mt-3 text-xs text-slate-500 space-y-2 text-left">
+          <ul className="mt-3 space-y-2 text-left text-xs text-slate-600 dark:text-slate-300">
             <li className="flex items-start gap-2">
-              <svg className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              7 days free - cancel anytime before charges apply
+              7日間無料（課金開始前ならいつでも解約可）
             </li>
             <li className="flex items-start gap-2">
-              <svg className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              Unlimited before/after captures
+              ビフォーアフター撮影は回数制限なし
             </li>
             <li className="flex items-start gap-2">
-              <svg className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              Ghost overlay alignment
+              角度を合わせるガイド重ね合わせ
             </li>
             <li className="flex items-start gap-2">
-              <svg className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              AI face detection & mosaic
+              AI顔検出・モザイク編集対応
             </li>
             <li className="flex items-start gap-2">
-              <svg className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              Export & share comparison images
+              比較画像の書き出し・共有
             </li>
           </ul>
         </div>
 
         <form className="space-y-3" onSubmit={onSubmit}>
           <label className="block">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</span>
+            <span className="text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-300">メールアドレス</span>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all bg-slate-50"
+              className="mt-1.5 w-full rounded-[12px] border border-slate-200/80 bg-white/85 px-4 py-3 text-sm text-slate-700 outline-none transition-all placeholder:text-slate-300 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100 dark:placeholder:text-slate-500"
               placeholder="example@salon.com"
             />
           </label>
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50"
+            className="sheen-wrap w-full rounded-[12px] border border-indigo-300/30 bg-[linear-gradient(135deg,#5f7bff_0%,#6a60ff_48%,#8a49ff_100%)] py-3 font-bold text-white shadow-[0_16px_30px_-20px_rgba(86,89,255,0.95)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
           >
-            {submitting ? 'Redirecting to Stripe...' : 'Start Free Trial'}
+            {submitting ? 'Stripeへ接続中...' : '無料トライアルを開始'}
           </button>
-          <p className="text-[11px] text-slate-400 leading-relaxed text-center">
-            You will be redirected to Stripe for secure payment setup.
+          <p className="text-center text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
+            お支払い設定はStripeの安全な画面で行われます。
           </p>
         </form>
 
         {message ? (
-          <p className="mt-4 text-center text-xs font-medium text-red-500">{message}</p>
+          <p className="mt-4 text-center text-xs font-medium text-rose-500">{message}</p>
         ) : null}
 
         <div className="mt-5 text-center space-y-2">
-          <button onClick={() => navigate('/')} className="text-xs text-indigo-500 font-medium hover:text-indigo-700 transition-colors">
-            Already have an account? Sign in
+          <button onClick={() => navigate('/')} className="text-xs font-medium text-indigo-500 transition-colors hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200">
+            すでに登録済みの方はこちら
           </button>
-          <div className="flex justify-center gap-4">
-            <button onClick={() => navigate('/terms')} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">Terms</button>
-            <span className="text-xs text-slate-300">|</span>
-            <button onClick={() => navigate('/privacy')} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">Privacy</button>
+          <div className="mx-auto flex w-fit items-center gap-3 rounded-full border border-white/55 bg-white/55 px-4 py-1.5 text-xs text-slate-500 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-400">
+            <button onClick={() => navigate('/terms')} className="transition-colors hover:text-slate-700 dark:hover:text-slate-200">利用規約</button>
+            <span className="text-slate-300 dark:text-slate-600">|</span>
+            <button onClick={() => navigate('/privacy')} className="transition-colors hover:text-slate-700 dark:hover:text-slate-200">プライバシー</button>
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </AppFrame>
   );
 }

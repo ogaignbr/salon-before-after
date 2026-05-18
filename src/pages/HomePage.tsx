@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { signOut, user, openCustomerPortal } = useAuth();
+  const { signOut, user } = useAuth();
   const useCases = [
     {
       label: '美容',
@@ -120,19 +120,6 @@ export default function HomePage() {
 
         <div className="mt-auto pt-8 text-center animate-fade-in" style={{ animationDelay: '0.25s' }}>
           <p className="mb-3 text-xs font-medium tracking-[0.06em] text-slate-500 dark:text-slate-400">ぴたっと合わせて、変化を伝える</p>
-          <button
-            onClick={async () => {
-              try {
-                const result = await openCustomerPortal();
-                if (result.error) alert(result.error);
-              } catch {
-                alert('接続に失敗しました。時間を置いてお試しください。');
-              }
-            }}
-            className="mb-3 text-xs font-semibold text-indigo-500 transition-colors hover:text-indigo-600 dark:text-indigo-300 dark:hover:text-indigo-200"
-          >
-            プラン管理
-          </button>
           <div className="mx-auto flex w-fit items-center gap-3 rounded-full border border-white/55 bg-white/55 px-4 py-1.5 text-xs text-slate-500 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-400">
             <button onClick={() => navigate('/terms')} className="transition-colors hover:text-slate-700 dark:hover:text-slate-200">
               利用規約

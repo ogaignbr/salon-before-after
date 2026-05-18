@@ -5,6 +5,7 @@ import { createComparisonImage, blobToDataURL } from '../lib/imageProcessor';
 import CompareView from '../components/CompareView';
 import MosaicCanvas from '../components/MosaicCanvas';
 import type { Session } from '../types';
+import { AppFrame, AppHeader } from '../components/AppFrame';
 
 export default function PreviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,12 +24,14 @@ export default function PreviewPage() {
 
   if (!session || !session.afterImage) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-slate-50">
+      <AppFrame>
+        <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 mx-auto mb-3 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-          <p className="text-slate-400 font-medium text-sm">Loading...</p>
+          <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600 dark:border-indigo-300/20 dark:border-t-indigo-300" />
+          <p className="text-sm font-medium text-slate-400 dark:text-slate-500">読み込み中...</p>
         </div>
-      </div>
+        </div>
+      </AppFrame>
     );
   }
 
@@ -97,81 +100,71 @@ export default function PreviewPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-slate-50 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center px-4 py-3 bg-white border-b border-slate-100">
-        <button onClick={() => navigate('/home')} className="text-indigo-600 font-medium text-sm flex items-center gap-1">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Home
-        </button>
-        <h1 className="flex-1 text-center font-bold text-slate-800 text-sm">Preview</h1>
-        <div className="w-14" />
-      </div>
+    <AppFrame>
+      <AppHeader title="プレビュー" onBack={() => navigate('/home')} backLabel="ホーム" />
 
       {/* Customer info */}
-      <div className="px-5 py-3 bg-white border-b border-slate-100">
-        <p className="font-semibold text-slate-800">{session.customerName}</p>
+      <div className="mb-3 rounded-[14px] border border-white/65 bg-white/72 px-4 py-3 shadow-[0_14px_30px_-24px_rgba(84,96,168,0.65)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]">
+        <p className="font-semibold text-slate-800 dark:text-slate-100">{session.customerName}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <p className="text-xs text-slate-400 font-medium">
+          <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
             {new Date(session.createdAt).toLocaleDateString('ja-JP')}
           </p>
-          <span className="text-xs text-slate-300">|</span>
-          <p className="text-xs text-slate-400 font-medium">
-            {session.part === 'face' ? 'Face' : 'Body'}
+          <span className="text-xs text-slate-300 dark:text-slate-600">|</span>
+          <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
+            {session.part === 'face' ? '顔' : '体'}
           </p>
         </div>
       </div>
 
       {/* Compare view */}
-      <div className="px-4 py-4 animate-slide-up">
+      <div className="animate-slide-up px-1 pb-4">
         <CompareView beforeBlob={session.beforeImage} afterBlob={session.afterImage!} />
       </div>
 
       {/* Mosaic buttons */}
-      <div className="px-4 space-y-2 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mosaic Editor</p>
+      <div className="animate-slide-up space-y-2 px-1" style={{ animationDelay: '0.1s' }}>
+        <p className="text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-300">モザイク編集</p>
         <div className="flex gap-2">
           <button
             onClick={() => setEditingMosaic('before')}
-            className="flex-1 py-2.5 rounded-xl bg-white text-slate-600 text-sm font-semibold border border-slate-200 hover:border-indigo-300 active:scale-[0.98] transition-all"
+            className="flex-1 rounded-[12px] border border-indigo-200/60 bg-white/72 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_14px_30px_-24px_rgba(84,96,168,0.65)] backdrop-blur-xl transition-all hover:border-indigo-300/70 hover:bg-white/85 active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
           >
-            Edit Before
+            Beforeを編集
           </button>
           <button
             onClick={() => setEditingMosaic('after')}
-            className="flex-1 py-2.5 rounded-xl bg-white text-slate-600 text-sm font-semibold border border-slate-200 hover:border-indigo-300 active:scale-[0.98] transition-all"
+            className="flex-1 rounded-[12px] border border-indigo-200/60 bg-white/72 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_14px_30px_-24px_rgba(84,96,168,0.65)] backdrop-blur-xl transition-all hover:border-indigo-300/70 hover:bg-white/85 active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
           >
-            Edit After
+            Afterを編集
           </button>
         </div>
       </div>
 
       {/* Action buttons */}
-      <div className="px-4 py-6 mt-auto space-y-2 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+      <div className="mt-auto space-y-2 px-1 pb-1 pt-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
         <button
           onClick={handleExport}
           disabled={isExporting}
-          className="w-full py-3.5 bg-indigo-600 text-white font-semibold rounded-xl shadow-md hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 animate-subtle-pulse"
+          className="sheen-wrap animate-subtle-pulse w-full rounded-[12px] border border-indigo-300/30 bg-[linear-gradient(135deg,#5f7bff_0%,#6a60ff_48%,#8a49ff_100%)] py-3.5 font-bold text-white shadow-[0_16px_30px_-20px_rgba(86,89,255,0.95)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
         >
-          {isExporting ? 'Exporting...' : 'Export & Share Comparison'}
+          {isExporting ? '書き出し中...' : '比較画像を書き出し・共有'}
         </button>
         <div className="flex gap-2">
           <button
             onClick={() => handleShareSingle(session.beforeImage, 'before')}
-            className="flex-1 py-2.5 rounded-xl bg-white text-slate-600 text-sm font-semibold border border-slate-200 hover:border-indigo-300 active:scale-[0.98] transition-all"
+            className="flex-1 rounded-[12px] border border-indigo-200/60 bg-white/72 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_14px_30px_-24px_rgba(84,96,168,0.65)] backdrop-blur-xl transition-all hover:border-indigo-300/70 hover:bg-white/85 active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
           >
-            Before Only
+            Beforeのみ
           </button>
           <button
             onClick={() => handleShareSingle(session.afterImage!, 'after')}
-            className="flex-1 py-2.5 rounded-xl bg-white text-slate-600 text-sm font-semibold border border-slate-200 hover:border-indigo-300 active:scale-[0.98] transition-all"
+            className="flex-1 rounded-[12px] border border-indigo-200/60 bg-white/72 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_14px_30px_-24px_rgba(84,96,168,0.65)] backdrop-blur-xl transition-all hover:border-indigo-300/70 hover:bg-white/85 active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
           >
-            After Only
+            Afterのみ
           </button>
         </div>
       </div>
-    </div>
+    </AppFrame>
   );
 }

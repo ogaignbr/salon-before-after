@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { AppFrame } from '../components/AppFrame';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -89,37 +90,38 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-slate-50 flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm animate-slide-up">
+    <AppFrame>
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center animate-slide-up">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+        <div className="mb-7 text-center">
+          <div className="relative mx-auto mb-4 flex h-[72px] w-[72px] items-center justify-center rounded-full border border-indigo-100/75 bg-white/80 shadow-[0_18px_34px_-24px_rgba(91,97,255,0.8)] backdrop-blur-xl dark:border-indigo-300/20 dark:bg-slate-900/55">
+            <div className="absolute inset-2 rounded-full bg-[linear-gradient(135deg,#5f7bff_0%,#6f56ff_52%,#8a49ff_100%)] opacity-10 dark:opacity-30" />
+            <svg className="h-8 w-8 text-indigo-500 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9a2 2 0 012-2h1.1a2 2 0 001.62-.826l.56-.748A2 2 0 0112.88 5h2.24a2 2 0 011.6.8l.56.748A2 2 0 0018.9 7H20a2 2 0 012 2v7.5a2.5 2.5 0 01-2.5 2.5h-15A2.5 2.5 0 012 16.5V9a2 2 0 012-2h2z" />
+              <circle cx="12" cy="12.75" r="3.25" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">PitaCame</h1>
-          <p className="text-sm text-slate-400 mt-1 font-medium">Compare Camera for Business</p>
+          <h1 className="text-[34px] font-black tracking-[0.08em] text-slate-900 dark:text-slate-100">ぴたカメ</h1>
+          <p className="mt-1 text-[13px] font-medium text-slate-500 dark:text-slate-400">同じ角度で撮れる比較カメラ</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200/60 p-6">
+        <div className="rounded-[16px] border border-white/65 bg-white/75 p-6 shadow-[0_18px_36px_-28px_rgba(68,82,147,0.75)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_20px_42px_-30px_rgba(30,46,105,0.9)]">
           {!needsPinChange && !showPinChange ? (
             <form className="space-y-4" onSubmit={onLogin}>
               <label className="block">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</span>
+                <span className="text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-300">メールアドレス</span>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all bg-slate-50"
+                  className="mt-1.5 w-full rounded-[12px] border border-slate-200/80 bg-white/85 px-4 py-3 text-sm text-slate-700 outline-none transition-all placeholder:text-slate-300 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100 dark:placeholder:text-slate-500"
                   placeholder="example@salon.com"
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">PIN (4 digits)</span>
+                <span className="text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-300">PIN（4桁）</span>
                 <input
                   type="password"
                   inputMode="numeric"
@@ -128,7 +130,7 @@ export default function LoginPage() {
                   value={pin}
                   onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   required
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 text-base text-center tracking-[0.3em] font-semibold outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all bg-slate-50"
+                  className="mt-1.5 w-full rounded-[12px] border border-slate-200/80 bg-white/85 px-4 py-3 text-center text-base font-semibold tracking-[0.3em] text-slate-800 outline-none transition-all placeholder:text-slate-300 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100 dark:placeholder:text-slate-500"
                   placeholder="----"
                 />
               </label>
@@ -136,20 +138,20 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 text-base"
+                className="sheen-wrap w-full rounded-[12px] border border-indigo-300/30 bg-[linear-gradient(135deg,#5f7bff_0%,#6a60ff_48%,#8a49ff_100%)] py-3 text-base font-bold text-white shadow-[0_16px_30px_-20px_rgba(86,89,255,0.95)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
               >
-                {submitting ? 'Signing in...' : 'Sign In'}
+                {submitting ? 'ログイン中...' : 'ログイン'}
               </button>
             </form>
           ) : (
             <form className="space-y-4" onSubmit={onChangeInitialPin}>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <p className="text-xs text-amber-700 font-medium text-center">
-                  Initial login requires PIN change
+              <div className="rounded-[12px] border border-amber-300/70 bg-amber-50/90 p-3 dark:border-amber-300/25 dark:bg-amber-500/10">
+                <p className="text-center text-xs font-medium text-amber-700 dark:text-amber-200">
+                  初回ログインのためPIN変更が必要です
                 </p>
               </div>
               <label className="block">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">New PIN (4 digits)</span>
+                <span className="text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-300">新しいPIN（4桁）</span>
                 <input
                   type="password"
                   inputMode="numeric"
@@ -158,11 +160,11 @@ export default function LoginPage() {
                   value={newPin}
                   onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   required
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 text-base text-center tracking-[0.3em] font-semibold outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all bg-slate-50"
+                  className="mt-1.5 w-full rounded-[12px] border border-slate-200/80 bg-white/85 px-4 py-3 text-center text-base font-semibold tracking-[0.3em] text-slate-800 outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100"
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Confirm New PIN</span>
+                <span className="text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-300">新しいPIN（確認）</span>
                 <input
                   type="password"
                   inputMode="numeric"
@@ -171,39 +173,39 @@ export default function LoginPage() {
                   value={newPinConfirm}
                   onChange={(e) => setNewPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   required
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 text-base text-center tracking-[0.3em] font-semibold outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all bg-slate-50"
+                  className="mt-1.5 w-full rounded-[12px] border border-slate-200/80 bg-white/85 px-4 py-3 text-center text-base font-semibold tracking-[0.3em] text-slate-800 outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100"
                 />
               </label>
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50"
+                className="sheen-wrap w-full rounded-[12px] border border-indigo-300/30 bg-[linear-gradient(135deg,#5f7bff_0%,#6a60ff_48%,#8a49ff_100%)] py-3 font-bold text-white shadow-[0_16px_30px_-20px_rgba(86,89,255,0.95)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
               >
-                {submitting ? 'Updating...' : 'Update PIN & Continue'}
+                {submitting ? '更新中...' : 'PINを更新して続行'}
               </button>
             </form>
           )}
 
           {message && (
-            <p className="mt-3 text-center text-xs font-medium text-red-500">{message}</p>
+            <p className="mt-3 text-center text-xs font-medium text-rose-500">{message}</p>
           )}
         </div>
 
         {/* Bottom links */}
-        <div className="mt-6 text-center space-y-3 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        <div className="mt-6 space-y-3 text-center animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <button
             onClick={() => navigate('/signup')}
-            className="w-full py-3 bg-white text-indigo-600 font-semibold rounded-xl shadow-sm border border-slate-200 hover:border-indigo-300 active:scale-[0.98] transition-all"
+            className="w-full rounded-[12px] border border-indigo-200/60 bg-white/72 py-3 font-semibold text-indigo-600 shadow-[0_14px_30px_-24px_rgba(84,96,168,0.65)] backdrop-blur-xl transition-all hover:border-indigo-300/70 hover:bg-white/85 active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-indigo-300"
           >
-            Create Account
+            新規登録
           </button>
-          <div className="flex justify-center gap-4 mt-2">
-            <button onClick={() => navigate('/terms')} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">Terms</button>
-            <span className="text-xs text-slate-300">|</span>
-            <button onClick={() => navigate('/privacy')} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">Privacy</button>
+          <div className="mx-auto flex w-fit items-center gap-3 rounded-full border border-white/55 bg-white/55 px-4 py-1.5 text-xs text-slate-500 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-400">
+            <button onClick={() => navigate('/terms')} className="transition-colors hover:text-slate-700 dark:hover:text-slate-200">利用規約</button>
+            <span className="text-slate-300 dark:text-slate-600">|</span>
+            <button onClick={() => navigate('/privacy')} className="transition-colors hover:text-slate-700 dark:hover:text-slate-200">プライバシー</button>
           </div>
         </div>
       </div>
-    </div>
+    </AppFrame>
   );
 }
