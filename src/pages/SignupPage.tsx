@@ -28,19 +28,32 @@ export default function SignupPage() {
 
       const baseUrl = window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, '');
 
-      // Edge Function で一括処理: ユーザー作成 + Stripe checkout URL 生成
-      const { data, error } = await supabase.functions.invoke('signup-and-checkout', {
-        body: {
-          email,
-          priceId,
-          successUrl: `${baseUrl}/subscribe?result=success`,
-          cancelUrl: `${baseUrl}/signup`,
-        },
-      });
+      // Edge Function で一括処理: ユーザー作成 + Stripe checkout URL 生成（15秒タイムアウト）
+      const controller = new AbortController();
+      const timerId = window.setTimeout(() => controller.abort(), 15000);
+
+      let data: Record<string, unknown> | null = null;
+      let error: Error | null = null;
+      try {
+        const res = await supabase.functions.invoke('signup-and-checkout', {
+          body: {
+            email,
+            priceId,
+            successUrl: `${baseUrl}/subscribe?result=success`,
+            cancelUrl: `${baseUrl}/signup`,
+          },
+        });
+        data = res.data;
+        error = res.error;
+      } catch (invokeErr) {
+        error = invokeErr instanceof Error ? invokeErr : new Error('invoke failed');
+      } finally {
+        window.clearTimeout(timerId);
+      }
 
       if (error || !data?.url) {
         setSubmitting(false);
-        const msg = data?.error || '登録処理に失敗しました。時間をおいてもう一度お試しください。';
+        const msg = (data?.error as string) || '登録処理に失敗しました。時間をおいてもう一度お試しください。';
         setMessage(msg);
         return;
       }
