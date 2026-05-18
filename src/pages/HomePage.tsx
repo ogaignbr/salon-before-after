@@ -70,8 +70,12 @@ export default function HomePage() {
         <p className="text-xs text-pink-300 font-bold">ぴたっと撮れる。変化が伝わる。</p>
         <button
           onClick={async () => {
-            const result = await openCustomerPortal();
-            if (result.error) alert(result.error);
+            try {
+              const result = await openCustomerPortal();
+              if (result.error) alert(result.error);
+            } catch {
+              alert('通信に失敗しました。時間をおいてもう一度お試しください。');
+            }
           }}
           className="text-xs text-pink-400 underline font-bold"
         >

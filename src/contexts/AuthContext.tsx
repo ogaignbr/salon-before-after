@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { hashPin } from '../lib/authPin';
@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [needsPinChange, setNeedsPinChange] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfileAndSubscription = async (userId: string) => {
+  const fetchProfileAndSubscription = useCallback(async (userId: string) => {
     const [{ data: profile }, { data: sub }] = await Promise.all([
       supabase
         .from('member_profiles')
@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       setTrialDaysLeft(0);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -181,60 +181,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.clearTimeout(bootTimeoutId);
       listener.unsubscribe();
     };
-  }, []);
+  }, [fetchProfileAndSubscription]);
 
-  const signIn = async (loginId: string, pin: string) => {
+  const signIn = useCallback(async (lid: string, pin: string) => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE };
 
-    const { data: resolved, error: resolveError } = await supabase.functions.invoke(
-      'resolve-login-id',
-      { body: { loginId, pin } },
-    );
+    try {
+      const { data: resolved, error: resolveError } = await supabase.functions.invoke(
+        'resolve-login-id',
+        { body: { loginId: lid, pin } },
+      );
 
-    if (resolveError || !resolved?.email) {
-      return { error: 'IDまたはPINが違います。' };
+      if (resolveError || !resolved?.email) {
+        return { error: 'IDまたはPINが違います。' };
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: resolved.email as string,
+        password: `PIN-${pin}`,
+      });
+      if (error) return { error: 'IDまたはPINが違います。' };
+
+      return { error: null };
+    } catch {
+      return { error: '通信に失敗しました。時間をおいてもう一度お試しください。' };
     }
+  }, []);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: resolved.email as string,
-      password: `PIN-${pin}`,
-    });
-    if (error) return { error: 'IDまたはPINが違います。' };
-
-    return { error: null };
-  };
-
-  const signUp = async (email: string) => {
+  const signUp = useCallback(async (email: string) => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE, loginId: null };
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password: 'PIN-0000',
-    });
-    if (error) return { error: error.message, loginId: null };
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password: 'PIN-0000',
+      });
+      if (error) return { error: error.message, loginId: null };
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password: 'PIN-0000',
-    });
-    if (signInError) return { error: null, loginId: null };
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: 'PIN-0000',
+      });
+      if (signInError) return { error: null, loginId: null };
 
-    const {
-      data: { user: signedInUser },
-    } = await supabase.auth.getUser();
+      const {
+        data: { user: signedInUser },
+      } = await supabase.auth.getUser();
 
-    if (!signedInUser) return { error: null, loginId: null };
+      if (!signedInUser) return { error: null, loginId: null };
 
-    const { data: profile } = await supabase
-      .from('member_profiles')
-      .select('login_id')
-      .eq('user_id', signedInUser.id)
-      .single();
+      const { data: profile } = await supabase
+        .from('member_profiles')
+        .select('login_id')
+        .eq('user_id', signedInUser.id)
+        .single();
 
-    return { error: null, loginId: profile?.login_id ?? null };
-  };
+      return { error: null, loginId: profile?.login_id ?? null };
+    } catch {
+      return { error: '通信に失敗しました。時間をおいてもう一度お試しください。', loginId: null };
+    }
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
     setLoginId(null);
@@ -242,49 +250,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTrialDaysLeft(0);
     setNeedsPinChange(false);
     setHasStripeSubscription(false);
-  };
+  }, []);
 
-  const completeInitialPinChange = async (currentPin: string, nextPin: string) => {
+  const completeInitialPinChange = useCallback(async (currentPin: string, nextPin: string) => {
     if (!user || !loginId) return { error: 'ログイン状態が無効です。' };
     if (!/^\d{4}$/.test(nextPin)) return { error: '新しいPINは4桁の数字で入力してください。' };
     if (currentPin === nextPin) return { error: '現在のPINと異なる番号を設定してください。' };
 
-    const pinHash = await hashPin(nextPin);
+    try {
+      const pinHash = await hashPin(nextPin);
 
-    const { error: profileError } = await supabase
-      .from('member_profiles')
-      .update({
-        pin_hash: pinHash,
-        must_change_pin: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', user.id);
-    if (profileError) return { error: profileError.message };
+      const { error: profileError } = await supabase
+        .from('member_profiles')
+        .update({
+          pin_hash: pinHash,
+          must_change_pin: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id);
+      if (profileError) return { error: profileError.message };
 
-    const { error: authError } = await supabase.auth.updateUser({ password: `PIN-${nextPin}` });
-    if (authError) return { error: authError.message };
+      const { error: authError } = await supabase.auth.updateUser({ password: `PIN-${nextPin}` });
+      if (authError) return { error: authError.message };
 
-    setNeedsPinChange(false);
-    return { error: null };
-  };
-
-  const forceResetPin = async (loginId: string, nextPin: string, adminKey: string) => {
-    if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE, message: null };
-    const { data, error } = await supabase.functions.invoke('reset-pin-admin', {
-      body: { loginId, nextPin, adminKey },
-    });
-    if (error || !data?.success) {
-      return { error: data?.message ?? error?.message ?? 'PINの初期化に失敗しました。', message: null };
+      setNeedsPinChange(false);
+      return { error: null };
+    } catch {
+      return { error: '通信に失敗しました。時間をおいてもう一度お試しください。' };
     }
-    return { error: null, message: data.message as string };
-  };
+  }, [user, loginId]);
 
-  const refreshSubscription = async () => {
+  const forceResetPin = useCallback(async (lid: string, nextPin: string, adminKey: string) => {
+    if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE, message: null };
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-pin-admin', {
+        body: { loginId: lid, nextPin, adminKey },
+      });
+      if (error || !data?.success) {
+        return { error: data?.message ?? error?.message ?? 'PINの初期化に失敗しました。', message: null };
+      }
+      return { error: null, message: data.message as string };
+    } catch {
+      return { error: '通信に失敗しました。時間をおいてもう一度お試しください。', message: null };
+    }
+  }, []);
+
+  const refreshSubscription = useCallback(async () => {
     if (!user) return;
-    await fetchProfileAndSubscription(user.id);
-  };
+    try {
+      await fetchProfileAndSubscription(user.id);
+    } catch (error) {
+      console.warn('[auth] refreshSubscription failed', error);
+    }
+  }, [user, fetchProfileAndSubscription]);
 
-  const startCheckout = async () => {
+  const startCheckout = useCallback(async () => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE };
     if (!user) return { error: 'ログインが必要です。' };
     const priceId = import.meta.env.VITE_STRIPE_PRICE_ID as string | undefined;
@@ -314,46 +334,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.warn('[checkout] failed to create session', error);
       return { error: timeoutErrorMessage(error) };
     }
-  };
+  }, [user]);
 
-  const openCustomerPortal = async () => {
+  const openCustomerPortal = useCallback(async () => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE };
     if (!user) return { error: 'ログインが必要です。' };
 
     const baseUrl = window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, '');
-    const { data, error } = await supabase.functions.invoke('create-portal-session', {
-      body: {
-        userId: user.id,
-        returnUrl: `${baseUrl}/`,
-      },
-    });
-    if (error || !data?.url) {
-      return { error: 'お支払い管理画面を開けませんでした。' };
+    try {
+      const { data, error } = await supabase.functions.invoke('create-portal-session', {
+        body: {
+          userId: user.id,
+          returnUrl: `${baseUrl}/`,
+        },
+      });
+      if (error || !data?.url) {
+        return { error: 'お支払い管理画面を開けませんでした。' };
+      }
+      window.location.href = data.url as string;
+      return { error: null };
+    } catch {
+      return { error: '通信に失敗しました。時間をおいてもう一度お試しください。' };
     }
-    window.location.href = data.url as string;
-    return { error: null };
-  };
+  }, [user]);
+
+  const value = useMemo<AuthState>(() => ({
+    user,
+    loginId,
+    subscription,
+    trialDaysLeft,
+    hasStripeSubscription,
+    loading,
+    needsPinChange,
+    signIn,
+    signUp,
+    signOut,
+    completeInitialPinChange,
+    forceResetPin,
+    refreshSubscription,
+    startCheckout,
+    openCustomerPortal,
+  }), [
+    user,
+    loginId,
+    subscription,
+    trialDaysLeft,
+    hasStripeSubscription,
+    loading,
+    needsPinChange,
+    signIn,
+    signUp,
+    signOut,
+    completeInitialPinChange,
+    forceResetPin,
+    refreshSubscription,
+    startCheckout,
+    openCustomerPortal,
+  ]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loginId,
-        subscription,
-        trialDaysLeft,
-        hasStripeSubscription,
-        loading,
-        needsPinChange,
-        signIn,
-        signUp,
-        signOut,
-        completeInitialPinChange,
-        forceResetPin,
-        refreshSubscription,
-        startCheckout,
-        openCustomerPortal,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

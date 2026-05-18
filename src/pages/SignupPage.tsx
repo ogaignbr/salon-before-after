@@ -35,10 +35,15 @@ export default function SignupPage() {
     setShowCloseConfirm(false);
     setMessage('');
     setSubmitting(true);
-    const checkout = await startCheckout();
-    setSubmitting(false);
-    if (checkout.error) {
-      setMessage(checkout.error);
+    try {
+      const checkout = await startCheckout();
+      if (checkout.error) {
+        setMessage(checkout.error);
+      }
+    } catch {
+      setMessage('通信に失敗しました。時間をおいてもう一度お試しください。');
+    } finally {
+      setSubmitting(false);
     }
   };
 

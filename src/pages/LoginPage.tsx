@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [pin, setPin] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPinChange, setShowPinChange] = useState(false);
   const [newPin, setNewPin] = useState('');
   const [newPinConfirm, setNewPinConfirm] = useState('');
 
@@ -23,20 +24,27 @@ export default function LoginPage() {
     setSubmitting(true);
     setMessage('');
 
-    const { error } = await signIn(loginId, pin);
-    setSubmitting(false);
+    try {
+      const { error } = await signIn(loginId, pin);
+      if (error) {
+        setSubmitting(false);
+        setMessage('IDまたはPINが違います。');
+        return;
+      }
 
-    if (error) {
-      setMessage('IDまたはPINが違います。');
-      return;
+      if (needsPinChange || pin === '0000') {
+        setSubmitting(false);
+        setShowPinChange(true);
+        setMessage('初期PINのため、先にPIN変更を行ってください。');
+        return;
+      }
+
+      navigate('/', { replace: true });
+    } catch {
+      setMessage('通信に失敗しました。時間をおいてもう一度お試しください。');
+    } finally {
+      setSubmitting(false);
     }
-
-    if (needsPinChange || pin === '0000') {
-      setMessage('初期PINのため、先にPIN変更を行ってください。');
-      return;
-    }
-
-    navigate('/', { replace: true });
   };
 
   const onChangeInitialPin = async (e: React.FormEvent) => {
@@ -68,7 +76,7 @@ export default function LoginPage() {
         <h1 className="text-2xl font-black text-pink-500 text-center">ログイン</h1>
         <p className="text-xs text-pink-300 text-center mt-2">4桁IDと4桁PINでログインしてください</p>
 
-        {!needsPinChange ? (
+        {!needsPinChange && !showPinChange ? (
           <form className="mt-6 space-y-3" onSubmit={onLogin}>
             <label className="block">
               <span className="text-xs font-bold text-pink-400">ID（4桁）</span>

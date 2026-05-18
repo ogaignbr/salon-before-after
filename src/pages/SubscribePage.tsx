@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -20,15 +20,17 @@ export default function SubscribePage() {
   const result = params.get('result');
   const isSuccess = result === 'success';
 
+  const refreshRef = useRef(refreshSubscription);
+  refreshRef.current = refreshSubscription;
+
   useEffect(() => {
     if (!isSuccess || !user) return;
     let cancelled = false;
     const tryRefresh = async () => {
       for (let i = 0; i < 8; i += 1) {
         if (cancelled) return;
-        await refreshSubscription();
+        await refreshRef.current();
         if (cancelled) return;
-        if (hasStripeSubscription) return;
         await new Promise((resolve) => setTimeout(resolve, 1500));
       }
     };
@@ -36,14 +38,25 @@ export default function SubscribePage() {
     return () => {
       cancelled = true;
     };
-  }, [isSuccess, user, hasStripeSubscription, refreshSubscription]);
+  }, [isSuccess, user]);
+
+  useEffect(() => {
+    if (isSuccess && hasStripeSubscription) {
+      // Subscription confirmed, no need to keep polling
+    }
+  }, [isSuccess, hasStripeSubscription]);
 
   const handleSubscribe = async () => {
     setMessage('');
     setSubmitting(true);
-    const { error } = await startCheckout();
-    setSubmitting(false);
-    if (error) setMessage(error);
+    try {
+      const { error } = await startCheckout();
+      if (error) setMessage(error);
+    } catch {
+      setMessage('通信に失敗しました。時間をおいてもう一度お試しください。');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const onConfirmClose = async () => {
@@ -170,8 +183,13 @@ export default function SubscribePage() {
         <button
           onClick={async () => {
             setSubmitting(true);
-            await refreshSubscription();
-            setSubmitting(false);
+            try {
+              await refreshSubscription();
+            } catch {
+              // ignore
+            } finally {
+              setSubmitting(false);
+            }
           }}
           className="mt-3 w-full py-2 text-xs text-pink-400 font-bold underline"
         >
