@@ -97,7 +97,7 @@ export default function CapturePage() {
 
         <div className="flex-1 space-y-5 px-1 pb-2 pt-1 animate-slide-up">
           <div className="space-y-2">
-            <label className="text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-300">
+            <label className="text-xs font-semibold tracking-[0.08em] text-[#161B5C] dark:text-slate-300">
               顧客名
             </label>
             <input
@@ -105,31 +105,31 @@ export default function CapturePage() {
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="例: 山田 花子"
-              className="w-full rounded-[12px] border border-slate-200/80 bg-white/80 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition-all placeholder:text-slate-300 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100 dark:placeholder:text-slate-500"
+              className="w-full rounded-[10px] border border-[#B8A8F8] bg-white px-4 py-3 text-sm font-medium text-[#161B5C] outline-none transition-all placeholder:text-[#9A9AB0] focus:border-[#6B4CFF] focus:ring-2 focus:ring-[#6B4CFF]/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-300">
+            <label className="text-xs font-semibold tracking-[0.08em] text-[#161B5C] dark:text-slate-300">
               撮影部位
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setPart('face')}
-                className={`py-4 rounded-xl text-sm font-semibold transition-all ${
+                className={`py-4 rounded-[10px] text-sm font-semibold transition-all ${
                   part === 'face'
-                    ? 'bg-[linear-gradient(135deg,#5f7bff_0%,#6a60ff_48%,#8a49ff_100%)] text-white shadow-[0_16px_30px_-20px_rgba(86,89,255,0.95)]'
-                    : 'bg-white/75 text-slate-500 border border-indigo-200/60 hover:border-indigo-300/70 dark:bg-slate-900/45 dark:text-slate-200 dark:border-indigo-300/20'
+                    ? 'bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)]'
+                    : 'bg-white text-[#6B6F8A] border border-[#6B4CFF]/60 hover:bg-[#F4F2FF] dark:bg-slate-900/45 dark:text-slate-200 dark:border-indigo-300/20'
                 }`}
               >
                 顔
               </button>
               <button
                 onClick={() => setPart('body')}
-                className={`py-4 rounded-xl text-sm font-semibold transition-all ${
+                className={`py-4 rounded-[10px] text-sm font-semibold transition-all ${
                   part === 'body'
-                    ? 'bg-[linear-gradient(135deg,#5f7bff_0%,#6a60ff_48%,#8a49ff_100%)] text-white shadow-[0_16px_30px_-20px_rgba(86,89,255,0.95)]'
-                    : 'bg-white/75 text-slate-500 border border-indigo-200/60 hover:border-indigo-300/70 dark:bg-slate-900/45 dark:text-slate-200 dark:border-indigo-300/20'
+                    ? 'bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)]'
+                    : 'bg-white text-[#6B6F8A] border border-[#6B4CFF]/60 hover:bg-[#F4F2FF] dark:bg-slate-900/45 dark:text-slate-200 dark:border-indigo-300/20'
                 }`}
               >
                 体
@@ -138,8 +138,8 @@ export default function CapturePage() {
           </div>
 
           {/* Consent area */}
-          <div className="rounded-[14px] border border-white/65 bg-white/72 p-4 shadow-[0_14px_30px_-24px_rgba(84,96,168,0.65)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)] space-y-3">
-            <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+          <div className="rounded-[16px] border border-[#B9A7FF]/30 bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)] space-y-3">
+            <p className="text-[11px] leading-relaxed text-[#6B6F8A] dark:text-slate-400">
               撮影前に必ずお客様の同意を得てください。写真データはこの端末内に保存され、外部サーバーには送信されません。
             </p>
             <label className="flex items-start gap-2.5 cursor-pointer">
@@ -147,14 +147,14 @@ export default function CapturePage() {
                 type="checkbox"
                 checked={consent}
                 onChange={(e) => setConsent(e.target.checked)}
-                className="mt-0.5 w-4 h-4 accent-indigo-600 rounded flex-shrink-0"
+                className="mt-0.5 w-4 h-4 accent-[#6B4CFF] rounded flex-shrink-0"
               />
-              <span className="text-[11px] leading-snug text-slate-600 dark:text-slate-300">
+              <span className="text-[11px] leading-snug text-[#161B5C] dark:text-slate-300">
                 お客様の同意を取得しました。
                 <button
                   type="button"
                   onClick={() => navigate('/privacy')}
-                  className="ml-1 text-indigo-500 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200"
+                  className="ml-1 text-[#6B4CFF] hover:text-[#8B5CFF] dark:text-indigo-300 dark:hover:text-indigo-200"
                 >
                   プライバシー
                 </button>
@@ -162,7 +162,7 @@ export default function CapturePage() {
                 <button
                   type="button"
                   onClick={() => navigate('/terms')}
-                  className="text-indigo-500 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200"
+                  className="text-[#6B4CFF] hover:text-[#8B5CFF] dark:text-indigo-300 dark:hover:text-indigo-200"
                 >
                   利用規約
                 </button>
@@ -173,7 +173,7 @@ export default function CapturePage() {
           <button
             onClick={() => setStep('before')}
             disabled={!consent}
-            className="sheen-wrap w-full rounded-[12px] border border-indigo-300/30 bg-[linear-gradient(135deg,#5f7bff_0%,#6a60ff_48%,#8a49ff_100%)] py-4 text-base font-bold text-white shadow-[0_16px_30px_-20px_rgba(86,89,255,0.95)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-30 disabled:scale-100"
+            className="sheen-wrap w-full rounded-[10px] border border-[#8B5CFF]/30 bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] py-4 text-base font-bold text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-30 disabled:scale-100"
           >
             撮影を開始する
           </button>
@@ -236,8 +236,8 @@ export default function CapturePage() {
         )}
       </div>
 
-      <div className="pointer-events-none absolute left-5 top-[18%] z-10 h-2 w-2 rounded-full bg-indigo-300/60 animate-pulse" />
-      <div className="pointer-events-none absolute right-7 top-[38%] z-10 h-1.5 w-1.5 rounded-full bg-violet-300/70 animate-pulse" />
+      <div className="pointer-events-none absolute left-5 top-[18%] z-10 h-2 w-2 rounded-full bg-[#6B4CFF]/40 animate-pulse" />
+      <div className="pointer-events-none absolute right-7 top-[38%] z-10 h-1.5 w-1.5 rounded-full bg-[#8B5CFF]/50 animate-pulse" />
 
       {/* Controls */}
       <div className="relative z-20 bg-gradient-to-t from-black/95 to-black/70 px-4 py-4 space-y-3">
@@ -250,7 +250,7 @@ export default function CapturePage() {
               max="80"
               value={ghostOpacity * 100}
               onChange={(e) => setGhostOpacity(Number(e.target.value) / 100)}
-              className="flex-1 accent-indigo-400"
+              className="flex-1 accent-[#6B4CFF]"
             />
           </div>
         )}
@@ -259,13 +259,13 @@ export default function CapturePage() {
         <div className="flex justify-center gap-2">
           <button
             onClick={() => setShowGuide(!showGuide)}
-            className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition ${showGuide ? 'bg-indigo-500/60 text-white' : 'bg-white/10 text-white/40'}`}
+            className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition ${showGuide ? 'bg-[#6B4CFF]/60 text-white' : 'bg-white/10 text-white/40'}`}
           >
             ガイド {showGuide ? 'ON' : 'OFF'}
           </button>
           <button
             onClick={() => setShowGrid(!showGrid)}
-            className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition ${showGrid ? 'bg-indigo-500/60 text-white' : 'bg-white/10 text-white/40'}`}
+            className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition ${showGrid ? 'bg-[#6B4CFF]/60 text-white' : 'bg-white/10 text-white/40'}`}
           >
             グリッド {showGrid ? 'ON' : 'OFF'}
           </button>

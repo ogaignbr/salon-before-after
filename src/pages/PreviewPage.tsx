@@ -27,8 +27,8 @@ export default function PreviewPage() {
       <AppFrame>
         <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600 dark:border-indigo-300/20 dark:border-t-indigo-300" />
-          <p className="text-sm font-medium text-slate-400 dark:text-slate-500">読み込み中...</p>
+          <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-[#B9A7FF] border-t-[#6B4CFF] dark:border-indigo-300/20 dark:border-t-indigo-300" />
+          <p className="text-sm font-medium text-[#6B6F8A] dark:text-slate-500">読み込み中...</p>
         </div>
         </div>
       </AppFrame>
@@ -104,14 +104,14 @@ export default function PreviewPage() {
       <AppHeader title="プレビュー" onBack={() => navigate('/home')} backLabel="ホーム" />
 
       {/* Customer info */}
-      <div className="mb-3 rounded-[14px] border border-white/65 bg-white/72 px-4 py-3 shadow-[0_14px_30px_-24px_rgba(84,96,168,0.65)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]">
-        <p className="font-semibold text-slate-800 dark:text-slate-100">{session.customerName}</p>
+      <div className="mb-3 rounded-[16px] border border-[#B9A7FF]/30 bg-[rgba(255,255,255,0.92)] px-4 py-3 shadow-[0_12px_32px_rgba(85,70,180,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]">
+        <p className="font-semibold text-[#161B5C] dark:text-slate-100">{session.customerName}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
+          <p className="text-xs font-medium text-[#6B6F8A] dark:text-slate-500">
             {new Date(session.createdAt).toLocaleDateString('ja-JP')}
           </p>
-          <span className="text-xs text-slate-300 dark:text-slate-600">|</span>
-          <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
+          <span className="text-xs text-[#DCD7FF] dark:text-slate-600">|</span>
+          <p className="text-xs font-medium text-[#6B6F8A] dark:text-slate-500">
             {session.part === 'face' ? '顔' : '体'}
           </p>
         </div>
@@ -124,17 +124,17 @@ export default function PreviewPage() {
 
       {/* Mosaic buttons */}
       <div className="animate-slide-up space-y-2 px-1" style={{ animationDelay: '0.1s' }}>
-        <p className="text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-300">モザイク編集</p>
+        <p className="text-xs font-semibold tracking-[0.08em] text-[#161B5C] dark:text-slate-300">モザイク編集</p>
         <div className="flex gap-2">
           <button
             onClick={() => setEditingMosaic('before')}
-            className="flex-1 rounded-[12px] border border-indigo-200/60 bg-white/72 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_14px_30px_-24px_rgba(84,96,168,0.65)] backdrop-blur-xl transition-all hover:border-indigo-300/70 hover:bg-white/85 active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
+            className="flex-1 rounded-[10px] border border-[#6B4CFF]/60 bg-white py-2.5 text-sm font-semibold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
           >
             Beforeを編集
           </button>
           <button
             onClick={() => setEditingMosaic('after')}
-            className="flex-1 rounded-[12px] border border-indigo-200/60 bg-white/72 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_14px_30px_-24px_rgba(84,96,168,0.65)] backdrop-blur-xl transition-all hover:border-indigo-300/70 hover:bg-white/85 active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
+            className="flex-1 rounded-[10px] border border-[#6B4CFF]/60 bg-white py-2.5 text-sm font-semibold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
           >
             Afterを編集
           </button>
@@ -146,20 +146,20 @@ export default function PreviewPage() {
         <button
           onClick={handleExport}
           disabled={isExporting}
-          className="sheen-wrap animate-subtle-pulse w-full rounded-[12px] border border-indigo-300/30 bg-[linear-gradient(135deg,#5f7bff_0%,#6a60ff_48%,#8a49ff_100%)] py-3.5 font-bold text-white shadow-[0_16px_30px_-20px_rgba(86,89,255,0.95)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
+          className="sheen-wrap animate-subtle-pulse w-full rounded-[10px] border border-[#8B5CFF]/30 bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] py-3.5 font-bold text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
         >
           {isExporting ? '書き出し中...' : '比較画像を書き出し・共有'}
         </button>
         <div className="flex gap-2">
           <button
             onClick={() => handleShareSingle(session.beforeImage, 'before')}
-            className="flex-1 rounded-[12px] border border-indigo-200/60 bg-white/72 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_14px_30px_-24px_rgba(84,96,168,0.65)] backdrop-blur-xl transition-all hover:border-indigo-300/70 hover:bg-white/85 active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
+            className="flex-1 rounded-[10px] border border-[#6B4CFF]/60 bg-white py-2.5 text-sm font-semibold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
           >
             Beforeのみ
           </button>
           <button
             onClick={() => handleShareSingle(session.afterImage!, 'after')}
-            className="flex-1 rounded-[12px] border border-indigo-200/60 bg-white/72 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_14px_30px_-24px_rgba(84,96,168,0.65)] backdrop-blur-xl transition-all hover:border-indigo-300/70 hover:bg-white/85 active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
+            className="flex-1 rounded-[10px] border border-[#6B4CFF]/60 bg-white py-2.5 text-sm font-semibold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
           >
             Afterのみ
           </button>
