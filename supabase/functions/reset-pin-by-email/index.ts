@@ -1,13 +1,10 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const supabaseAdmin = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-);
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -25,6 +22,27 @@ async function hashPin(pin: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+async function supabaseFetch(path: string, init: RequestInit = {}) {
+  return fetch(`${supabaseUrl}${path}`, {
+    ...init,
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      'Content-Type': 'application/json',
+      ...(init.headers ?? {}),
+    },
+  });
+}
+
+async function readErrorMessage(response: Response, fallback: string) {
+  try {
+    const body = await response.json();
+    return body.message ?? body.error_description ?? body.error ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function isUsableSubscription(sub: { status?: string | null; trial_end?: string | null } | null) {
   if (!sub?.status) return false;
   if (sub.status === 'active') return true;
@@ -36,6 +54,9 @@ function isUsableSubscription(sub: { status?: string | null; trial_end?: string 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+  if (req.method !== 'POST') {
+    return jsonResponse({ success: false, message: 'method not allowed' }, 405);
   }
 
   try {
@@ -49,53 +70,58 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: false, message: '新しいPINは4桁の数字で入力してください。' }, 400);
     }
 
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('member_profiles')
-      .select('user_id')
-      .eq('email', normalizedEmail)
-      .maybeSingle();
-
-    if (profileError) {
-      return jsonResponse({ success: false, message: 'PINの更新に失敗しました。' }, 500);
+    const profileResponse = await supabaseFetch(
+      `/rest/v1/member_profiles?email=eq.${encodeURIComponent(normalizedEmail)}&select=user_id`,
+      { method: 'GET' },
+    );
+    if (!profileResponse.ok) {
+      const message = await readErrorMessage(profileResponse, 'PINの更新に失敗しました。');
+      return jsonResponse({ success: false, message }, 500);
     }
+
+    const profiles = await profileResponse.json() as Array<{ user_id: string }>;
+    const profile = profiles[0] ?? null;
     if (!profile?.user_id) {
       return jsonResponse({ success: false, message: '有効な契約中のメールアドレスではありません。' }, 403);
     }
 
-    const { data: subscription, error: subscriptionError } = await supabaseAdmin
-      .from('subscriptions')
-      .select('status, trial_end')
-      .eq('user_id', profile.user_id)
-      .maybeSingle();
-
-    if (subscriptionError) {
-      return jsonResponse({ success: false, message: '契約状態を確認できませんでした。' }, 500);
+    const subscriptionResponse = await supabaseFetch(
+      `/rest/v1/subscriptions?user_id=eq.${profile.user_id}&select=status,trial_end`,
+      { method: 'GET' },
+    );
+    if (!subscriptionResponse.ok) {
+      const message = await readErrorMessage(subscriptionResponse, '契約状態を確認できませんでした。');
+      return jsonResponse({ success: false, message }, 500);
     }
-    if (!isUsableSubscription(subscription)) {
+
+    const subscriptions = await subscriptionResponse.json() as Array<{ status?: string | null; trial_end?: string | null }>;
+    if (!isUsableSubscription(subscriptions[0] ?? null)) {
       return jsonResponse({ success: false, message: '有効な契約中のメールアドレスではありません。' }, 403);
     }
 
     const newPin = String(nextPin);
-    const pinHash = await hashPin(newPin);
-
-    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(profile.user_id, {
-      password: `PIN-${newPin}`,
+    const authResponse = await supabaseFetch(`/auth/v1/admin/users/${profile.user_id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ password: `PIN-${newPin}` }),
     });
-    if (authError) {
-      return jsonResponse({ success: false, message: authError.message ?? '認証情報の更新に失敗しました。' }, 500);
+    if (!authResponse.ok) {
+      const message = await readErrorMessage(authResponse, '認証情報の更新に失敗しました。');
+      return jsonResponse({ success: false, message }, 500);
     }
 
-    const { error: updateError } = await supabaseAdmin
-      .from('member_profiles')
-      .update({
+    const pinHash = await hashPin(newPin);
+    const updateResponse = await supabaseFetch(`/rest/v1/member_profiles?user_id=eq.${profile.user_id}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
         pin_hash: pinHash,
         must_change_pin: false,
         updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', profile.user_id);
-
-    if (updateError) {
-      return jsonResponse({ success: false, message: 'PINの保存に失敗しました。' }, 500);
+      }),
+    });
+    if (!updateResponse.ok) {
+      const message = await readErrorMessage(updateResponse, 'PINの保存に失敗しました。');
+      return jsonResponse({ success: false, message }, 500);
     }
 
     return jsonResponse({ success: true, message: 'PINを更新しました。新しいPINでログインしてください。' });

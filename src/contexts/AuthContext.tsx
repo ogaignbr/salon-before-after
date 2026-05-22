@@ -7,6 +7,7 @@ const NOT_CONFIGURED_MESSAGE =
   'サーバー設定が未完了のため、現在ログインできません。管理者にお問い合わせください。';
 const AUTH_BOOT_TIMEOUT_MS = 8000;
 const FUNCTION_INVOKE_TIMEOUT_MS = 12000;
+const RESET_PIN_TIMEOUT_MS = 45000;
 
 function timeoutErrorMessage(error: unknown) {
   if (error instanceof Error && /timeout/i.test(error.message)) {
@@ -304,7 +305,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         supabase.functions.invoke('reset-pin-by-email', {
           body: { email: email.trim().toLowerCase(), nextPin },
         }),
-        FUNCTION_INVOKE_TIMEOUT_MS,
+        RESET_PIN_TIMEOUT_MS,
       );
 
       if (error || !data?.success) {
