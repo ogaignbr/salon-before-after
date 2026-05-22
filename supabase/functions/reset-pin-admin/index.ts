@@ -72,16 +72,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(profile.user_id, {
-      password: `PIN-${nextPin}`,
-    });
-    if (authError) {
-      return new Response(
-        JSON.stringify({ success: false, message: authError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-
     return new Response(
       JSON.stringify({ success: true, message: 'PINを初期化しました。' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

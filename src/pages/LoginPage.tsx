@@ -44,23 +44,28 @@ export default function LoginPage() {
     setMessage('');
 
     try {
-      const { error } = await signIn(email, pin);
+      const { error, needsPinChange: mustChangePin, subscription } = await signIn(email, pin);
       if (error) {
         setSubmitting(false);
-        setMessage('Incorrect email or PIN.');
+        setMessage(error);
         return;
       }
 
-      if (needsPinChange || pin === '0000') {
+      if (mustChangePin || needsPinChange || pin === '0000') {
         setSubmitting(false);
         setShowPinChange(true);
-        setMessage('Please change your initial PIN before continuing.');
+        setMessage('初回ログインのためPIN変更が必要です。');
+        return;
+      }
+
+      if (subscription !== 'active' && subscription !== 'trialing') {
+        navigate('/subscribe', { replace: true });
         return;
       }
 
       navigate('/home', { replace: true });
     } catch {
-      setMessage('Connection failed. Please try again.');
+      setMessage('通信に失敗しました。時間をおいてもう一度お試しください。');
     } finally {
       setSubmitting(false);
     }

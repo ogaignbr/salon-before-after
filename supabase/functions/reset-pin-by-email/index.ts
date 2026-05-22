@@ -8,8 +8,6 @@ const corsHeaders = {
 };
 
 const INTERNAL_REQUEST_TIMEOUT_MS = 10000;
-const AUTH_UPDATE_ATTEMPTS = 3;
-
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -62,30 +60,6 @@ function isUsableSubscription(sub: { status?: string | null; trial_end?: string 
   return new Date(sub.trial_end).getTime() > Date.now();
 }
 
-async function updateAuthPassword(userId: string, pin: string) {
-  let lastMessage = '認証情報の更新に失敗しました。';
-
-  for (let attempt = 1; attempt <= AUTH_UPDATE_ATTEMPTS; attempt += 1) {
-    try {
-      const response = await supabaseFetch(`/auth/v1/admin/users/${userId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ password: `PIN-${pin}` }),
-      }, 15000);
-
-      if (response.ok) return { ok: true, message: null };
-      lastMessage = await readErrorMessage(response, lastMessage);
-    } catch (error) {
-      lastMessage = error instanceof DOMException && error.name === 'AbortError'
-        ? '認証情報の更新がタイムアウトしました。'
-        : error instanceof Error
-          ? error.message
-          : lastMessage;
-    }
-  }
-
-  return { ok: false, message: lastMessage };
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -134,13 +108,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: false, message: '有効な契約中のメールアドレスではありません。' }, 403);
     }
 
-    const newPin = String(nextPin);
-    const authUpdate = await updateAuthPassword(profile.user_id, newPin);
-    if (!authUpdate.ok) {
-      return jsonResponse({ success: false, message: authUpdate.message }, 500);
-    }
-
-    const pinHash = await hashPin(newPin);
+    const pinHash = await hashPin(String(nextPin));
     const updateResponse = await supabaseFetch(`/rest/v1/member_profiles?user_id=eq.${profile.user_id}`, {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },

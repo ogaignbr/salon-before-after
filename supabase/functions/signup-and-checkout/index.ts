@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       // 2. Create user via admin API (email auto-confirmed, no confirmation email)
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: 'PIN-0000',
+        password: `auth-${crypto.randomUUID()}-${Date.now()}`,
         email_confirm: true,
       });
 

@@ -62,16 +62,6 @@ Deno.serve(async (req) => {
     const newPin = String(nextSecretCode);
     const pinHash = await hashPin(newPin);
 
-    const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      password: `PIN-${newPin}`,
-    });
-    if (authUpdateError) {
-      return jsonResponse(
-        { success: false, message: authUpdateError.message ?? '認証パスワードの更新に失敗しました。' },
-        500,
-      );
-    }
-
     const { error: profileError } = await supabaseAdmin
       .from('member_profiles')
       .update({

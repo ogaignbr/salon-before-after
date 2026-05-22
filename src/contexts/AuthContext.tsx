@@ -1,45 +1,126 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
-import type { User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from '../lib/supabase';
 import type { SubscriptionStatus } from '../types';
 
 const NOT_CONFIGURED_MESSAGE =
   'サーバー設定が未完了のため、現在ログインできません。管理者にお問い合わせください。';
-const AUTH_BOOT_TIMEOUT_MS = 8000;
-const FUNCTION_INVOKE_TIMEOUT_MS = 12000;
-const RESET_PIN_TIMEOUT_MS = 60000;
+const FUNCTION_TIMEOUT_MS = 15000;
+const RESET_PIN_TIMEOUT_MS = 30000;
+const PIN_SESSION_STORAGE_KEY = 'pitacame:pin-session';
+
+type AppUser = {
+  id: string;
+  email: string | null;
+};
+
+type FunctionResponse = {
+  success?: boolean;
+  message?: string;
+  error?: string;
+  url?: string;
+};
+
+type PinAuthResponse = FunctionResponse & {
+  sessionToken?: string;
+  user?: AppUser;
+  loginId?: string | null;
+  mustChangePin?: boolean;
+  subscription?: SubscriptionStatus;
+  trialDaysLeft?: number;
+  hasStripeSubscription?: boolean;
+};
+
+type StoredPinSession = {
+  token: string;
+  user: AppUser;
+  savedAt: string;
+};
 
 function timeoutErrorMessage(error: unknown) {
-  if (error instanceof Error && /timeout/i.test(error.message)) {
+  if (
+    error instanceof DOMException && error.name === 'AbortError'
+    || error instanceof Error && /timeout|abort/i.test(error.message)
+  ) {
     return '通信がタイムアウトしました。電波状態を確認して、もう一度お試しください。';
   }
   return '通信に失敗しました。時間をおいてもう一度お試しください。';
 }
 
-async function invokeWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  let timeoutId: number | undefined;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = window.setTimeout(() => {
-      reject(new Error('invoke timeout'));
-    }, timeoutMs);
-  });
+function readStoredSession(): StoredPinSession | null {
   try {
-    return await Promise.race([promise, timeoutPromise]);
+    const raw = localStorage.getItem(PIN_SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredPinSession;
+    if (!parsed?.token || !parsed?.user?.id) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredSession(session: StoredPinSession) {
+  try {
+    localStorage.setItem(PIN_SESSION_STORAGE_KEY, JSON.stringify(session));
+  } catch {
+    // Storage can fail in private browsing; the in-memory session still works.
+  }
+}
+
+function removeStoredSession() {
+  try {
+    localStorage.removeItem(PIN_SESSION_STORAGE_KEY);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+async function callEdgeFunction<T extends FunctionResponse>(
+  name: string,
+  body: Record<string, unknown>,
+  timeoutMs = FUNCTION_TIMEOUT_MS,
+): Promise<T> {
+  if (!isSupabaseConfigured || !supabaseUrl || !supabaseAnonKey) {
+    return { success: false, message: NOT_CONFIGURED_MESSAGE } as T;
+  }
+
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/${name}`, {
+      method: 'POST',
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const data = await response.json().catch(() => null) as T | null;
+
+    if (data) return data;
+    return {
+      success: false,
+      message: response.ok ? '処理結果を確認できませんでした。' : '処理に失敗しました。',
+    } as T;
   } finally {
-    if (timeoutId) window.clearTimeout(timeoutId);
+    window.clearTimeout(timeoutId);
   }
 }
 
 type AuthState = {
-  user: User | null;
+  user: AppUser | null;
   loginId: string | null;
   subscription: SubscriptionStatus;
   trialDaysLeft: number;
   hasStripeSubscription: boolean;
   loading: boolean;
   needsPinChange: boolean;
-  signIn: (email: string, pin: string) => Promise<{ error: string | null }>;
-  signUp: (email: string) => Promise<{ error: string | null; loginId: string | null }>;
+  signIn: (
+    email: string,
+    pin: string,
+  ) => Promise<{ error: string | null; needsPinChange?: boolean; subscription?: SubscriptionStatus }>;
   signOut: () => Promise<void>;
   resetPinByEmail: (
     email: string,
@@ -62,7 +143,8 @@ type AuthState = {
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [loginId, setLoginId] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionStatus>('none');
   const [trialDaysLeft, setTrialDaysLeft] = useState(0);
@@ -71,7 +153,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const clearAuthState = useCallback(() => {
+    removeStoredSession();
     setUser(null);
+    setSessionToken(null);
     setLoginId(null);
     setSubscription('none');
     setTrialDaysLeft(0);
@@ -80,58 +164,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  const fetchProfileAndSubscription = useCallback(async (userId: string) => {
-    const [{ data: profile }, { data: sub }] = await Promise.all([
-      supabase
-        .from('member_profiles')
-        .select('login_id, must_change_pin, pin_hash')
-        .eq('user_id', userId)
-        .single(),
-      supabase
-        .from('subscriptions')
-        .select('status, trial_end, stripe_subscription_id')
-        .eq('user_id', userId)
-        .single(),
-    ]);
+  const applyAuthPayload = useCallback((data: PinAuthResponse, fallbackToken?: string) => {
+    const nextUser = data.user ?? null;
+    const nextToken = data.sessionToken ?? fallbackToken ?? null;
 
-    if (profile) {
-      setLoginId(profile.login_id);
-      setNeedsPinChange(Boolean(profile.must_change_pin));
+    setUser(nextUser);
+    setSessionToken(nextToken);
+    setLoginId(data.loginId ?? null);
+    setSubscription(data.subscription ?? 'none');
+    setTrialDaysLeft(data.trialDaysLeft ?? 0);
+    setHasStripeSubscription(Boolean(data.hasStripeSubscription));
+    setNeedsPinChange(Boolean(data.mustChangePin));
+    setLoading(false);
+
+    if (nextUser && nextToken) {
+      writeStoredSession({
+        token: nextToken,
+        user: nextUser,
+        savedAt: new Date().toISOString(),
+      });
     } else {
-      setLoginId(null);
-      setNeedsPinChange(false);
-    }
-
-    if (!sub) {
-      setSubscription('none');
-      setTrialDaysLeft(0);
-      setHasStripeSubscription(false);
-      return;
-    }
-
-    setHasStripeSubscription(Boolean(sub.stripe_subscription_id));
-
-    const trialEnd = sub.trial_end ? new Date(sub.trial_end) : null;
-    const now = new Date();
-    if (sub.status === 'trialing' && trialEnd && trialEnd.getTime() <= now.getTime()) {
-      await supabase
-        .from('subscriptions')
-        .update({ status: 'expired', updated_at: new Date().toISOString() })
-        .eq('user_id', userId);
-      setSubscription('expired');
-      setTrialDaysLeft(0);
-      return;
-    }
-
-    setSubscription(sub.status as SubscriptionStatus);
-    if (sub.status === 'trialing' && trialEnd) {
-      const days = Math.max(
-        0,
-        Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
-      );
-      setTrialDaysLeft(days);
-    } else {
-      setTrialDaysLeft(0);
+      removeStoredSession();
     }
   }, []);
 
@@ -141,305 +194,205 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    let cancelled = false;
-    const bootTimeoutId = window.setTimeout(() => {
-      if (cancelled) return;
-      console.warn('[auth] initial session check timed out');
+    const storedSession = readStoredSession();
+    if (!storedSession) {
       setLoading(false);
-    }, AUTH_BOOT_TIMEOUT_MS);
+      return;
+    }
 
-    supabase.auth
-      .getSession()
-      .then(async ({ data: { session } }) => {
+    let cancelled = false;
+    callEdgeFunction<PinAuthResponse>('pin-auth', {
+      action: 'session',
+      sessionToken: storedSession.token,
+    })
+      .then((data) => {
         if (cancelled) return;
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser) {
-          try {
-            await fetchProfileAndSubscription(currentUser.id);
-          } catch (error) {
-            console.warn('[auth] failed to load profile/subscription', error);
-          }
+        if (!data.success || !data.user) {
+          clearAuthState();
+          return;
         }
+        applyAuthPayload(data, storedSession.token);
       })
       .catch((error) => {
-        console.warn('[auth] getSession failed', error);
+        console.warn('[auth] failed to restore PIN session', error);
+        if (!cancelled) clearAuthState();
       })
       .finally(() => {
-        window.clearTimeout(bootTimeoutId);
         if (!cancelled) setLoading(false);
       });
 
-    const {
-      data: { subscription: listener },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        try {
-          await fetchProfileAndSubscription(currentUser.id);
-        } catch (error) {
-          console.warn('[auth] failed to refresh profile/subscription', error);
-        }
-      } else {
-        setLoginId(null);
-        setSubscription('none');
-        setTrialDaysLeft(0);
-        setNeedsPinChange(false);
-        setHasStripeSubscription(false);
-      }
-    });
-
     return () => {
       cancelled = true;
-      window.clearTimeout(bootTimeoutId);
-      listener.unsubscribe();
     };
-  }, [fetchProfileAndSubscription]);
+  }, [applyAuthPayload, clearAuthState]);
 
   const signIn = useCallback(async (email: string, pin: string) => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE };
     if (!email.trim()) return { error: 'メールアドレスを入力してください。' };
-    if (!/^\d{4}$/.test(pin)) return { error: '暗証番号は4桁の数字で入力してください。' };
+    if (!/^\d{4}$/.test(pin)) return { error: 'PINは4桁の数字で入力してください。' };
 
     try {
-      const { data, error } = await invokeWithTimeout(
-        supabase.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
-          password: `PIN-${pin}`,
-        }),
-        FUNCTION_INVOKE_TIMEOUT_MS,
-      );
-      if (error || !data?.user) return { error: 'メールアドレスまたは暗証番号が違います。' };
+      const data = await callEdgeFunction<PinAuthResponse>('pin-auth', {
+        action: 'signIn',
+        email: email.trim().toLowerCase(),
+        pin,
+      });
 
-      // トライアル期間終了/サブスク無効ならこの暗証番号でのログインを遮断する
-      const { data: sub } = await invokeWithTimeout(
-        Promise.resolve(
-          supabase
-            .from('subscriptions')
-            .select('status, trial_end')
-            .eq('user_id', data.user.id)
-            .maybeSingle(),
-        ),
-        FUNCTION_INVOKE_TIMEOUT_MS,
-      );
-
-      if (sub) {
-        const trialEnd = sub.trial_end ? new Date(sub.trial_end as string) : null;
-        const trialExpired = sub.status === 'trialing'
-          && trialEnd
-          && trialEnd.getTime() <= Date.now();
-        const blocked = sub.status === 'expired'
-          || sub.status === 'canceled'
-          || sub.status === 'past_due'
-          || trialExpired;
-        if (blocked) {
-          await supabase.auth.signOut();
-          return {
-            error: 'トライアル期間が終了したため、現在の暗証番号は使用できません。再度カード登録を行ってください。',
-          };
-        }
+      if (!data.success || !data.user || !data.sessionToken) {
+        return { error: data.message ?? 'メールアドレスまたはPINが違います。' };
       }
 
-      return { error: null };
+      applyAuthPayload(data);
+      return {
+        error: null,
+        needsPinChange: Boolean(data.mustChangePin),
+        subscription: data.subscription ?? 'none',
+      };
     } catch (error) {
       return { error: timeoutErrorMessage(error) };
     }
-  }, []);
-
-  const signUp = useCallback(async (email: string) => {
-    if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE, loginId: null };
-
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password: 'PIN-0000',
-      });
-      if (error) return { error: error.message, loginId: null };
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password: 'PIN-0000',
-      });
-      if (signInError) return { error: null, loginId: null };
-
-      const {
-        data: { user: signedInUser },
-      } = await supabase.auth.getUser();
-
-      if (!signedInUser) return { error: null, loginId: null };
-
-      const { data: profile } = await supabase
-        .from('member_profiles')
-        .select('login_id')
-        .eq('user_id', signedInUser.id)
-        .single();
-
-      return { error: null, loginId: profile?.login_id ?? null };
-    } catch {
-      return { error: '通信に失敗しました。時間をおいてもう一度お試しください。', loginId: null };
-    }
-  }, []);
+  }, [applyAuthPayload]);
 
   const signOut = useCallback(async () => {
     clearAuthState();
     if (!isSupabaseConfigured) return;
 
     try {
-      await invokeWithTimeout(
-        supabase.auth.signOut({ scope: 'local' }),
-        FUNCTION_INVOKE_TIMEOUT_MS,
-      );
+      await supabase.auth.signOut({ scope: 'local' });
     } catch (error) {
-      console.warn('[auth] signOut failed after local state clear', error);
+      console.warn('[auth] Supabase local sign-out cleanup failed', error);
     }
   }, [clearAuthState]);
 
   const resetPinByEmail = useCallback(async (email: string, nextPin: string) => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE, message: null };
-    if (!supabaseUrl || !supabaseAnonKey) return { error: NOT_CONFIGURED_MESSAGE, message: null };
     if (!email.trim()) return { error: 'メールアドレスを入力してください。', message: null };
     if (!/^\d{4}$/.test(nextPin)) return { error: '新しいPINは4桁の数字で入力してください。', message: null };
 
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), RESET_PIN_TIMEOUT_MS);
-
     try {
-      const response = await fetch(`${supabaseUrl}/functions/v1/reset-pin-by-email`, {
-        method: 'POST',
-        headers: {
-          apikey: supabaseAnonKey,
-          Authorization: `Bearer ${supabaseAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), nextPin }),
-        signal: controller.signal,
-      });
-      const data = await response.json().catch(() => null) as { success?: boolean; message?: string } | null;
+      const data = await callEdgeFunction<FunctionResponse>(
+        'reset-pin-by-email',
+        { email: email.trim().toLowerCase(), nextPin },
+        RESET_PIN_TIMEOUT_MS,
+      );
 
-      if (!response.ok || !data?.success) {
-        const message = data?.message ?? 'PINの更新に失敗しました。';
-        return { error: message, message: null };
+      if (!data.success) {
+        return { error: data.message ?? 'PINの更新に失敗しました。', message: null };
       }
 
       return {
         error: null,
-        message: (data.message as string | undefined) ?? 'PINを更新しました。新しいPINでログインしてください。',
+        message: data.message ?? 'PINを更新しました。新しいPINでログインしてください。',
       };
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        return { error: 'PIN更新がタイムアウトしました。時間をおいてもう一度お試しください。', message: null };
-      }
       return { error: timeoutErrorMessage(error), message: null };
-    } finally {
-      window.clearTimeout(timeoutId);
     }
   }, []);
 
-  const completeInitialPinChange = useCallback(async (currentSecretCode: string, nextSecretCode: string) => {
-    if (!user) return { error: 'ログイン状態が無効です。再度ログインしてください。' };
-    if (!/^\d{4}$/.test(nextSecretCode)) return { error: '新しい暗証番号は4桁の数字で入力してください。' };
-    if (currentSecretCode === nextSecretCode) return { error: '現在の暗証番号と異なる番号を設定してください。' };
+  const completeInitialPinChange = useCallback(async (_currentSecretCode: string, nextSecretCode: string) => {
+    if (!user || !sessionToken) return { error: 'ログイン状態が無効です。再度ログインしてください。' };
+    if (!/^\d{4}$/.test(nextSecretCode)) return { error: '新しいPINは4桁の数字で入力してください。' };
+    if (nextSecretCode === '0000') return { error: '0000以外のPINを設定してください。' };
 
     try {
-      const { data, error } = await invokeWithTimeout(
-        supabase.functions.invoke('update-secret-code', {
-          body: { nextSecretCode },
-        }),
-        FUNCTION_INVOKE_TIMEOUT_MS,
-      );
+      const data = await callEdgeFunction<PinAuthResponse>('pin-auth', {
+        action: 'changePin',
+        sessionToken,
+        nextPin: nextSecretCode,
+      });
 
-      if (error || !data?.success) {
-        const message = (data?.message as string | undefined)
-          ?? error?.message
-          ?? '暗証番号の更新に失敗しました。時間をおいてもう一度お試しください。';
-        return { error: message };
+      if (!data.success || !data.user || !data.sessionToken) {
+        return {
+          error: data.message ?? 'PINの更新に失敗しました。時間をおいてもう一度お試しください。',
+        };
       }
 
-      setNeedsPinChange(false);
+      applyAuthPayload(data, sessionToken);
       return { error: null };
     } catch (error) {
       return { error: timeoutErrorMessage(error) };
     }
-  }, [user]);
+  }, [applyAuthPayload, sessionToken, user]);
 
   const forceResetPin = useCallback(async (lid: string, nextSecretCode: string, adminKey: string) => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE, message: null };
     try {
-      const { data, error } = await supabase.functions.invoke('reset-pin-admin', {
-        body: { loginId: lid, nextPin: nextSecretCode, adminKey },
+      const data = await callEdgeFunction<FunctionResponse>('reset-pin-admin', {
+        loginId: lid,
+        nextPin: nextSecretCode,
+        adminKey,
       });
-      if (error || !data?.success) {
-        return { error: data?.message ?? error?.message ?? '暗証番号の初期化に失敗しました。', message: null };
+      if (!data.success) {
+        return { error: data.message ?? data.error ?? 'PINの初期化に失敗しました。', message: null };
       }
-      return { error: null, message: data.message as string };
+      return { error: null, message: data.message ?? 'PINを初期化しました。' };
     } catch {
       return { error: '通信に失敗しました。時間をおいてもう一度お試しください。', message: null };
     }
   }, []);
 
   const refreshSubscription = useCallback(async () => {
-    if (!user) return;
+    if (!sessionToken) return;
     try {
-      await fetchProfileAndSubscription(user.id);
+      const data = await callEdgeFunction<PinAuthResponse>('pin-auth', {
+        action: 'session',
+        sessionToken,
+      });
+      if (!data.success || !data.user) {
+        clearAuthState();
+        return;
+      }
+      applyAuthPayload(data, sessionToken);
     } catch (error) {
       console.warn('[auth] refreshSubscription failed', error);
     }
-  }, [user, fetchProfileAndSubscription]);
+  }, [applyAuthPayload, clearAuthState, sessionToken]);
 
   const startCheckout = useCallback(async () => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE };
-    if (!user) return { error: 'ログインが必要です。' };
+    if (!user || !sessionToken) return { error: 'ログインが必要です。' };
     const priceId = import.meta.env.VITE_STRIPE_PRICE_ID as string | undefined;
     if (!priceId) return { error: 'Stripe価格IDが設定されていません。' };
 
     const baseUrl = window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, '');
     try {
-      const { data, error } = await invokeWithTimeout(
-        supabase.functions.invoke('create-checkout-session', {
-          body: {
-            customerEmail: user.email,
-            userId: user.id,
-            priceId,
-            successUrl: `${baseUrl}/subscribe?result=success`,
-            cancelUrl: `${baseUrl}/subscribe?result=cancel`,
-          },
-        }),
-        FUNCTION_INVOKE_TIMEOUT_MS,
-      );
+      const data = await callEdgeFunction<FunctionResponse>('create-checkout-session', {
+        sessionToken,
+        priceId,
+        successUrl: `${baseUrl}/subscribe?result=success`,
+        cancelUrl: `${baseUrl}/subscribe?result=cancel`,
+      });
 
-      if (error || !data?.url) {
-        return { error: '決済ページの作成に失敗しました。' };
+      if (!data.url) {
+        return { error: data.message ?? data.error ?? '決済ページの作成に失敗しました。' };
       }
-      window.location.assign(data.url as string);
+      window.location.assign(data.url);
       return { error: null };
     } catch (error) {
       console.warn('[checkout] failed to create session', error);
       return { error: timeoutErrorMessage(error) };
     }
-  }, [user]);
+  }, [sessionToken, user]);
 
   const openCustomerPortal = useCallback(async () => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE };
-    if (!user) return { error: 'ログインが必要です。' };
+    if (!user || !sessionToken) return { error: 'ログインが必要です。' };
 
     const baseUrl = window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, '');
     try {
-      const { data, error } = await supabase.functions.invoke('create-portal-session', {
-        body: {
-          userId: user.id,
-          returnUrl: `${baseUrl}/home`,
-        },
+      const data = await callEdgeFunction<FunctionResponse>('create-portal-session', {
+        sessionToken,
+        returnUrl: `${baseUrl}/home`,
       });
-      if (error || !data?.url) {
-        return { error: 'お支払い管理画面を開けませんでした。' };
+      if (!data.url) {
+        return { error: data.message ?? data.error ?? 'お支払い管理画面を開けませんでした。' };
       }
-      window.location.href = data.url as string;
+      window.location.href = data.url;
       return { error: null };
     } catch {
       return { error: '通信に失敗しました。時間をおいてもう一度お試しください。' };
     }
-  }, [user]);
+  }, [sessionToken, user]);
 
   const value = useMemo<AuthState>(() => ({
     user,
@@ -450,7 +403,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     needsPinChange,
     signIn,
-    signUp,
     signOut,
     resetPinByEmail,
     completeInitialPinChange,
@@ -467,7 +419,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     needsPinChange,
     signIn,
-    signUp,
     signOut,
     resetPinByEmail,
     completeInitialPinChange,
