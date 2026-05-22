@@ -9,6 +9,7 @@ export default function LoginPage() {
   const {
     user,
     signIn,
+    resetPinByEmail,
     needsPinChange,
     completeInitialPinChange,
   } = useAuth();
@@ -23,8 +24,11 @@ export default function LoginPage() {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showPinChange, setShowPinChange] = useState(false);
+  const [showForgotPin, setShowForgotPin] = useState(false);
   const [newPin, setNewPin] = useState('');
   const [newPinConfirm, setNewPinConfirm] = useState('');
+  const [resetPin, setResetPin] = useState('');
+  const [resetPinConfirm, setResetPinConfirm] = useState('');
 
   useEffect(() => {
     if (user && !needsPinChange) {
@@ -90,6 +94,41 @@ export default function LoginPage() {
     }
   };
 
+  const onResetForgottenPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage('');
+    if (!email.trim()) {
+      setMessage('メールアドレスを入力してください。');
+      return;
+    }
+    if (!isFourDigits(resetPin) || !isFourDigits(resetPinConfirm)) {
+      setMessage('新しいPINは4桁の数字で入力してください。');
+      return;
+    }
+    if (resetPin !== resetPinConfirm) {
+      setMessage('PINが一致しません。');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { error, message: successMessage } = await resetPinByEmail(email, resetPin);
+      if (error) {
+        setMessage(error);
+        return;
+      }
+      setPin(resetPin);
+      setResetPin('');
+      setResetPinConfirm('');
+      setShowForgotPin(false);
+      setMessage(successMessage ?? 'PINを更新しました。新しいPINでログインしてください。');
+    } catch {
+      setMessage('通信に失敗しました。時間をおいてもう一度お試しください。');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <AppFrame>
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center animate-slide-up">
@@ -106,7 +145,84 @@ export default function LoginPage() {
 
         {/* Form card */}
         <div className="rounded-[20px] border border-[#B9A7FF]/35 bg-[rgba(255,255,255,0.94)] p-6 shadow-[0_12px_32px_rgba(85,70,180,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_20px_42px_-30px_rgba(30,46,105,0.9)]">
-          {!needsPinChange && !showPinChange ? (
+          {showForgotPin ? (
+            <form className="space-y-4" onSubmit={onResetForgottenPin}>
+              <div className="rounded-[10px] border border-[#B9A7FF]/40 bg-[#F4F2FF]/80 p-3 dark:border-indigo-300/20 dark:bg-indigo-500/10">
+                <p className="text-center text-xs font-medium text-[#161B5C] dark:text-indigo-100">
+                  契約中のメールアドレスのみPINを更新できます
+                </p>
+              </div>
+              <label className="block">
+                <span className="text-xs font-semibold tracking-[0.08em] text-[#161B5C] dark:text-slate-300">メールアドレス</span>
+                <div className="relative mt-1.5">
+                  <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B4CFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full rounded-[10px] border border-[#B8A8F8] bg-white py-3 pl-10 pr-4 text-sm text-[#161B5C] outline-none transition-all placeholder:text-[#9A9AB0] focus:border-[#6B4CFF] focus:ring-2 focus:ring-[#6B4CFF]/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    placeholder="example@pitacame.com"
+                  />
+                </div>
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold tracking-[0.08em] text-[#161B5C] dark:text-slate-300">新しいPIN（4桁）</span>
+                <div className="relative mt-1.5">
+                  <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B4CFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    pattern="\d{4}"
+                    maxLength={4}
+                    value={resetPin}
+                    onChange={(e) => setResetPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    required
+                    className="w-full rounded-[10px] border border-[#B8A8F8] bg-white py-3 pl-10 pr-4 text-center text-base font-semibold tracking-[0.3em] text-[#161B5C] outline-none transition-all focus:border-[#6B4CFF] focus:ring-2 focus:ring-[#6B4CFF]/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100"
+                  />
+                </div>
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold tracking-[0.08em] text-[#161B5C] dark:text-slate-300">新しいPIN（確認）</span>
+                <div className="relative mt-1.5">
+                  <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B4CFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    pattern="\d{4}"
+                    maxLength={4}
+                    value={resetPinConfirm}
+                    onChange={(e) => setResetPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    required
+                    className="w-full rounded-[10px] border border-[#B8A8F8] bg-white py-3 pl-10 pr-4 text-center text-base font-semibold tracking-[0.3em] text-[#161B5C] outline-none transition-all focus:border-[#6B4CFF] focus:ring-2 focus:ring-[#6B4CFF]/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100"
+                  />
+                </div>
+              </label>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="sheen-wrap w-full rounded-[10px] border border-[#8B5CFF]/30 bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] py-3 font-bold text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
+              >
+                {submitting ? '更新中...' : 'PINを更新する'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMessage('');
+                  setShowForgotPin(false);
+                }}
+                className="w-full py-1 text-xs font-semibold text-[#6B4CFF] transition-colors hover:text-[#8B5CFF] dark:text-indigo-300 dark:hover:text-indigo-200"
+              >
+                ログインに戻る
+              </button>
+            </form>
+          ) : !needsPinChange && !showPinChange ? (
             <form className="space-y-4" onSubmit={onLogin}>
               <label className="block">
                 <span className="text-xs font-semibold tracking-[0.08em] text-[#161B5C] dark:text-slate-300">メールアドレス</span>
@@ -150,6 +266,16 @@ export default function LoginPage() {
                 className="sheen-wrap w-full rounded-[10px] border border-[#8B5CFF]/30 bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] py-3 text-base font-bold text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
               >
                 {submitting ? 'ログイン中...' : 'ログイン'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMessage('');
+                  setShowForgotPin(true);
+                }}
+                className="w-full py-1 text-xs font-semibold text-[#6B4CFF] transition-colors hover:text-[#8B5CFF] dark:text-indigo-300 dark:hover:text-indigo-200"
+              >
+                PINを忘れた場合
               </button>
             </form>
           ) : (

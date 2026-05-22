@@ -89,6 +89,7 @@ supabase link --project-ref <your-project-ref>
 ```bash
 supabase functions deploy create-checkout-session --no-verify-jwt
 supabase functions deploy resolve-login-id --no-verify-jwt
+supabase functions deploy reset-pin-by-email --no-verify-jwt
 supabase functions deploy reset-pin-admin --no-verify-jwt
 supabase functions deploy stripe-webhook --no-verify-jwt
 ```

@@ -40,6 +40,10 @@ type AuthState = {
   signIn: (email: string, pin: string) => Promise<{ error: string | null }>;
   signUp: (email: string) => Promise<{ error: string | null; loginId: string | null }>;
   signOut: () => Promise<void>;
+  resetPinByEmail: (
+    email: string,
+    nextPin: string,
+  ) => Promise<{ error: string | null; message: string | null }>;
   completeInitialPinChange: (
     currentSecretCode: string,
     nextSecretCode: string,
@@ -290,6 +294,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearAuthState]);
 
+  const resetPinByEmail = useCallback(async (email: string, nextPin: string) => {
+    if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE, message: null };
+    if (!email.trim()) return { error: 'メールアドレスを入力してください。', message: null };
+    if (!/^\d{4}$/.test(nextPin)) return { error: '新しいPINは4桁の数字で入力してください。', message: null };
+
+    try {
+      const { data, error } = await invokeWithTimeout(
+        supabase.functions.invoke('reset-pin-by-email', {
+          body: { email: email.trim().toLowerCase(), nextPin },
+        }),
+        FUNCTION_INVOKE_TIMEOUT_MS,
+      );
+
+      if (error || !data?.success) {
+        const message = (data?.message as string | undefined)
+          ?? error?.message
+          ?? 'PINの更新に失敗しました。';
+        return { error: message, message: null };
+      }
+
+      return {
+        error: null,
+        message: (data.message as string | undefined) ?? 'PINを更新しました。新しいPINでログインしてください。',
+      };
+    } catch (error) {
+      return { error: timeoutErrorMessage(error), message: null };
+    }
+  }, []);
+
   const completeInitialPinChange = useCallback(async (currentSecretCode: string, nextSecretCode: string) => {
     if (!user) return { error: 'ログイン状態が無効です。再度ログインしてください。' };
     if (!/^\d{4}$/.test(nextSecretCode)) return { error: '新しい暗証番号は4桁の数字で入力してください。' };
@@ -406,6 +439,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
+    resetPinByEmail,
     completeInitialPinChange,
     forceResetPin,
     refreshSubscription,
@@ -422,6 +456,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
+    resetPinByEmail,
     completeInitialPinChange,
     forceResetPin,
     refreshSubscription,
