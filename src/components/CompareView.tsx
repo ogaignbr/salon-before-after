@@ -24,9 +24,9 @@ export default function CompareView({ beforeBlob, afterBlob }: Props) {
         )}
       </div>
       <div className="flex-1 flex flex-col items-center">
-        <span className="text-[10px] font-semibold text-indigo-500 mb-1.5 bg-indigo-50 px-3 py-0.5 rounded-full uppercase tracking-wider">After</span>
+        <span className="text-[10px] font-semibold text-cyan-500 mb-1.5 bg-cyan-50 px-3 py-0.5 rounded-full uppercase tracking-wider">After</span>
         {afterSrc && (
-          <img src={afterSrc} alt="After" className="w-full rounded-xl object-cover aspect-[3/4] border border-indigo-200 shadow-sm" />
+          <img src={afterSrc} alt="After" className="w-full rounded-xl object-cover aspect-[3/4] border border-cyan-200 shadow-sm" />
         )}
       </div>
     </div>

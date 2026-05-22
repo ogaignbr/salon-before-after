@@ -28,17 +28,17 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
       return (
         <AppFrame>
           <div className="mx-auto flex w-full max-w-sm flex-1 items-center">
-          <div className="w-full rounded-[20px] border border-[#B9A7FF]/35 bg-[rgba(255,255,255,0.94)] p-6 text-center shadow-[0_12px_32px_rgba(85,70,180,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_20px_42px_-30px_rgba(30,46,105,0.9)]">
+          <div className="w-full rounded-[20px] border border-[#A8DDE5]/35 bg-[rgba(255,255,255,0.94)] p-6 text-center shadow-[0_12px_32px_rgba(60,140,170,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_20px_42px_-30px_rgba(30,46,105,0.9)]">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-rose-200/70 bg-rose-50/80 dark:border-rose-300/20 dark:bg-rose-500/10">
               <svg className="h-6 w-6 text-[#E5486D] dark:text-rose-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
-            <h1 className="text-lg font-bold text-[#161B5C] dark:text-slate-100">エラーが発生しました</h1>
-            <p className="mt-2 text-sm text-[#6B6F8A] dark:text-slate-400">ページを再読み込みしてください。</p>
+            <h1 className="text-lg font-bold text-[#1B3A5C] dark:text-slate-100">エラーが発生しました</h1>
+            <p className="mt-2 text-sm text-[#5B7689] dark:text-slate-400">ページを再読み込みしてください。</p>
             <button
               onClick={() => window.location.reload()}
-              className="sheen-wrap mt-5 w-full rounded-[10px] border border-[#8B5CFF]/30 bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] py-3 font-bold text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)] transition-all hover:brightness-105 active:scale-[0.99]"
+              className="sheen-wrap mt-5 w-full rounded-[10px] border border-[#5BB5E7]/30 bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] py-3 font-bold text-white shadow-[0_8px_18px_rgba(70,160,200,0.24)] transition-all hover:brightness-105 active:scale-[0.99]"
             >
               再読み込み
             </button>

@@ -90,53 +90,53 @@ export default function SignupPage() {
   return (
     <AppFrame>
       <div className="mx-auto flex w-full max-w-sm flex-1 items-center">
-        <div className="w-full rounded-[20px] border border-[#B9A7FF]/35 bg-[rgba(255,255,255,0.94)] p-6 shadow-[0_12px_32px_rgba(85,70,180,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_20px_42px_-30px_rgba(30,46,105,0.9)]">
+        <div className="w-full rounded-[20px] border border-[#A8DDE5]/35 bg-[rgba(255,255,255,0.94)] p-6 shadow-[0_12px_32px_rgba(60,140,170,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_20px_42px_-30px_rgba(30,46,105,0.9)]">
         <div className="text-center mb-5">
-          <div className="mx-auto mb-3 w-fit rounded-[12px] border border-[#B9A7FF]/35 bg-[rgba(255,255,255,0.94)] p-2 dark:border-indigo-300/20 dark:bg-slate-900/70">
+          <div className="mx-auto mb-3 w-fit rounded-[12px] border border-[#A8DDE5]/35 bg-[rgba(255,255,255,0.94)] p-2 dark:border-cyan-300/20 dark:bg-slate-900/70">
             <img
               src={pitacameLogo}
               alt="ぴたカメロゴ"
               className="h-auto w-[128px] rounded-[8px]"
             />
           </div>
-          <h1 className="text-xl font-bold text-[#161B5C] dark:text-slate-100">アカウント作成</h1>
-          <p className="mt-1 text-xs font-medium text-[#6B6F8A] dark:text-slate-400">
+          <h1 className="text-xl font-bold text-[#1B3A5C] dark:text-slate-100">アカウント作成</h1>
+          <p className="mt-1 text-xs font-medium text-[#5B7689] dark:text-slate-400">
             7日間無料トライアルで開始
           </p>
         </div>
 
-        <div className="mb-5 rounded-[12px] border border-[#B9A7FF]/30 bg-[#F4F2FF]/65 p-4 dark:border-indigo-300/20 dark:bg-indigo-500/10">
+        <div className="mb-5 rounded-[12px] border border-[#A8DDE5]/30 bg-[#F0FBF8]/65 p-4 dark:border-cyan-300/20 dark:bg-cyan-500/10">
           <div className="flex items-baseline justify-center gap-1">
-            <span className="text-2xl font-bold text-[#161B5C] dark:text-slate-100">980</span>
-            <span className="text-sm font-medium text-[#6B6F8A] dark:text-slate-300">円 / 月</span>
+            <span className="text-2xl font-bold text-[#1B3A5C] dark:text-slate-100">980</span>
+            <span className="text-sm font-medium text-[#5B7689] dark:text-slate-300">円 / 月</span>
           </div>
-          <ul className="mt-3 space-y-2 text-left text-xs text-[#161B5C] dark:text-slate-300">
+          <ul className="mt-3 space-y-2 text-left text-xs text-[#1B3A5C] dark:text-slate-300">
             <li className="flex items-start gap-2">
-              <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#6B4CFF] dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#3DC4A8] dark:text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
               7日間無料（課金開始前ならいつでも解約可）
             </li>
             <li className="flex items-start gap-2">
-              <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#6B4CFF] dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#3DC4A8] dark:text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
               ビフォーアフター撮影は回数制限なし
             </li>
             <li className="flex items-start gap-2">
-              <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#6B4CFF] dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#3DC4A8] dark:text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
               角度を合わせるガイド重ね合わせ
             </li>
             <li className="flex items-start gap-2">
-              <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#6B4CFF] dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#3DC4A8] dark:text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
               AI顔検出・モザイク編集対応
             </li>
             <li className="flex items-start gap-2">
-              <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#6B4CFF] dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#3DC4A8] dark:text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
               比較画像の書き出し・共有
@@ -146,9 +146,9 @@ export default function SignupPage() {
 
         <form className="space-y-3" onSubmit={onSubmit}>
           <label className="block">
-            <span className="text-xs font-semibold tracking-[0.08em] text-[#161B5C] dark:text-slate-300">メールアドレス</span>
+            <span className="text-xs font-semibold tracking-[0.08em] text-[#1B3A5C] dark:text-slate-300">メールアドレス</span>
             <div className="relative mt-1.5">
-              <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B4CFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#3DC4A8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
               <input
@@ -156,7 +156,7 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full rounded-[10px] border border-[#B8A8F8] bg-white py-3 pl-10 pr-4 text-sm text-[#161B5C] outline-none transition-all placeholder:text-[#9A9AB0] focus:border-[#6B4CFF] focus:ring-2 focus:ring-[#6B4CFF]/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100 dark:placeholder:text-slate-500"
+                className="w-full rounded-[10px] border border-[#A8DDE5] bg-white py-3 pl-10 pr-4 text-sm text-[#1B3A5C] outline-none transition-all placeholder:text-[#92A8B5] focus:border-[#3DC4A8] focus:ring-2 focus:ring-[#3DC4A8]/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100 dark:placeholder:text-slate-500"
                 placeholder="example@salon.com"
               />
             </div>
@@ -164,11 +164,11 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="sheen-wrap w-full rounded-[10px] border border-[#8B5CFF]/30 bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] py-3 font-bold text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
+            className="sheen-wrap w-full rounded-[10px] border border-[#5BB5E7]/30 bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] py-3 font-bold text-white shadow-[0_8px_18px_rgba(70,160,200,0.24)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
           >
             {submitting ? 'Stripeへ接続中...' : '無料トライアルを開始'}
           </button>
-          <p className="text-center text-[11px] leading-relaxed text-[#6B6F8A] dark:text-slate-500">
+          <p className="text-center text-[11px] leading-relaxed text-[#5B7689] dark:text-slate-500">
             お支払い設定はStripeの安全な画面で行われます。
           </p>
         </form>
@@ -178,13 +178,13 @@ export default function SignupPage() {
         ) : null}
 
         <div className="mt-5 text-center space-y-2">
-          <button onClick={() => navigate('/')} className="text-xs font-medium text-[#6B4CFF] transition-colors hover:text-[#8B5CFF] dark:text-indigo-300 dark:hover:text-indigo-200">
+          <button onClick={() => navigate('/')} className="text-xs font-medium text-[#3DC4A8] transition-colors hover:text-[#5BB5E7] dark:text-cyan-300 dark:hover:text-cyan-200">
             すでに登録済みの方はこちら
           </button>
-          <div className="mx-auto flex w-fit items-center gap-3 rounded-[16px] border border-[#DCD7FF] bg-white px-4 py-1.5 text-xs text-[#6B6F8A] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-400">
-            <button onClick={() => navigate('/terms')} className="transition-colors hover:text-[#161B5C] dark:hover:text-slate-200">利用規約</button>
-            <span className="text-[#DCD7FF] dark:text-slate-600">|</span>
-            <button onClick={() => navigate('/privacy')} className="transition-colors hover:text-[#161B5C] dark:hover:text-slate-200">プライバシー</button>
+          <div className="mx-auto flex w-fit items-center gap-3 rounded-[16px] border border-[#C9E5E0] bg-white px-4 py-1.5 text-xs text-[#5B7689] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-400">
+            <button onClick={() => navigate('/terms')} className="transition-colors hover:text-[#1B3A5C] dark:hover:text-slate-200">利用規約</button>
+            <span className="text-[#C9E5E0] dark:text-slate-600">|</span>
+            <button onClick={() => navigate('/privacy')} className="transition-colors hover:text-[#1B3A5C] dark:hover:text-slate-200">プライバシー</button>
           </div>
         </div>
       </div>

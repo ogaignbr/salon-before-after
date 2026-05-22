@@ -9,12 +9,12 @@ export default function PrivacyPolicyPage() {
       <AppHeader title="プライバシーポリシー" onBack={() => navigate(-1)} backLabel="戻る" />
 
       <div className="flex-1 overflow-y-auto px-1 pb-2">
-        <div className="rounded-[20px] border border-[#B9A7FF]/35 bg-[rgba(255,255,255,0.94)] p-5 text-[11px] leading-relaxed text-[#161B5C] shadow-[0_12px_32px_rgba(85,70,180,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:text-slate-300 dark:shadow-[0_20px_42px_-30px_rgba(30,46,105,0.9)]">
+        <div className="rounded-[20px] border border-[#A8DDE5]/35 bg-[rgba(255,255,255,0.94)] p-5 text-[11px] leading-relaxed text-[#1B3A5C] shadow-[0_12px_32px_rgba(60,140,170,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:text-slate-300 dark:shadow-[0_20px_42px_-30px_rgba(30,46,105,0.9)]">
 
-          <p className="text-[10px] text-[#6B6F8A] dark:text-slate-500">最終更新日: 2026年5月22日</p>
+          <p className="text-[10px] text-[#5B7689] dark:text-slate-500">最終更新日: 2026年5月22日</p>
 
           <section className="mt-4 space-y-1.5">
-            <h2 className="text-xs font-black text-[#6B4CFF] dark:text-indigo-300">1. はじめに</h2>
+            <h2 className="text-xs font-black text-[#3DC4A8] dark:text-cyan-300">1. はじめに</h2>
             <p>
               ぴたカメ（以下「本アプリ」）は、利用者が選択した画像をカメラ画面に半透明で重ね、同じ画角や構図で新しい写真を撮影しやすくする比較カメラです。
               特定の業種や用途に限定されず、記録、比較、確認、作品撮影、商品撮影、成長記録、作業報告など、利用者の目的に応じて使用できます。
@@ -25,7 +25,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="mt-4 space-y-1.5">
-            <h2 className="text-xs font-black text-[#6B4CFF] dark:text-indigo-300">2. 取得する情報</h2>
+            <h2 className="text-xs font-black text-[#3DC4A8] dark:text-cyan-300">2. 取得する情報</h2>
             <p>本アプリでは、利用状況に応じて以下の情報を取り扱います。</p>
             <ul className="list-disc pl-4 space-y-0.5">
               <li>アカウント登録・ログインに使用するメールアドレス</li>
@@ -38,7 +38,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="mt-4 space-y-1.5">
-            <h2 className="text-xs font-black text-[#6B4CFF] dark:text-indigo-300">3. 情報の利用目的</h2>
+            <h2 className="text-xs font-black text-[#3DC4A8] dark:text-cyan-300">3. 情報の利用目的</h2>
             <p>取得または取り扱う情報は、以下の目的に使用します。</p>
             <ul className="list-disc pl-4 space-y-0.5">
               <li>本アプリのログイン、本人確認、サブスクリプション管理</li>
@@ -50,7 +50,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="mt-4 space-y-1.5">
-            <h2 className="text-xs font-black text-[#6B4CFF] dark:text-indigo-300">4. 画像データの保存と送信</h2>
+            <h2 className="text-xs font-black text-[#3DC4A8] dark:text-cyan-300">4. 画像データの保存と送信</h2>
             <p>
               本アプリは、基準画像および撮影画像を撮影・編集・出力のために一時的に取り扱います。
               本アプリは、画像をアプリ内の履歴として長期保存することを前提としていません。
@@ -66,7 +66,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="mt-4 space-y-1.5">
-            <h2 className="text-xs font-black text-[#6B4CFF] dark:text-indigo-300">5. 第三者提供・外部サービス</h2>
+            <h2 className="text-xs font-black text-[#3DC4A8] dark:text-cyan-300">5. 第三者提供・外部サービス</h2>
             <p>
               当社は、法令に基づく場合を除き、利用者の同意なく個人情報を第三者に提供しません。
             </p>
@@ -77,7 +77,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="mt-4 space-y-1.5">
-            <h2 className="text-xs font-black text-[#6B4CFF] dark:text-indigo-300">6. 利用者による画像管理</h2>
+            <h2 className="text-xs font-black text-[#3DC4A8] dark:text-cyan-300">6. 利用者による画像管理</h2>
             <p>
               本アプリは、撮影後に必要な画像を利用者自身が端末へ保存または共有する使い方を前提としています。
               出力した画像の保存、共有、公開、削除、バックアップは利用者の責任で行ってください。
@@ -89,7 +89,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="mt-4 space-y-1.5">
-            <h2 className="text-xs font-black text-[#6B4CFF] dark:text-indigo-300">7. 安全管理措置</h2>
+            <h2 className="text-xs font-black text-[#3DC4A8] dark:text-cyan-300">7. 安全管理措置</h2>
             <p>本アプリは以下の安全管理措置に努めます。</p>
             <ul className="list-disc pl-4 space-y-0.5">
               <li>HTTPS通信によりアプリの配信経路を暗号化すること</li>
@@ -100,7 +100,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="mt-4 space-y-1.5">
-            <h2 className="text-xs font-black text-[#6B4CFF] dark:text-indigo-300">8. 利用者の権利</h2>
+            <h2 className="text-xs font-black text-[#3DC4A8] dark:text-cyan-300">8. 利用者の権利</h2>
             <p>
               利用者は、法令に基づき、当社が保有する自身の個人情報について、開示、訂正、削除、利用停止等を求めることができます。
               画像データについては、利用者の端末または利用者が保存・共有した外部サービス上で管理されるため、利用者自身で削除・管理してください。
@@ -108,7 +108,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="mt-4 space-y-1.5">
-            <h2 className="text-xs font-black text-[#6B4CFF] dark:text-indigo-300">9. ポリシーの変更</h2>
+            <h2 className="text-xs font-black text-[#3DC4A8] dark:text-cyan-300">9. ポリシーの変更</h2>
             <p>
               本ポリシーは、法令の改正やサービス内容の変更に応じて、事前の通知なく改定する場合があります。
               改定後のポリシーは、本アプリ内に掲載した時点から効力を生じるものとします。
@@ -116,11 +116,11 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="mt-4 space-y-1.5">
-            <h2 className="text-xs font-black text-[#6B4CFF] dark:text-indigo-300">10. お問い合わせ</h2>
+            <h2 className="text-xs font-black text-[#3DC4A8] dark:text-cyan-300">10. お問い合わせ</h2>
             <p>
               個人情報の取扱いに関するお問い合わせは、本アプリの提供元または運営者までご連絡ください。
             </p>
-            <p className="text-[#6B6F8A] dark:text-slate-500">
+            <p className="text-[#5B7689] dark:text-slate-500">
               ※ 具体的な連絡先は、提供元が案内する窓口をご確認ください。
             </p>
           </section>

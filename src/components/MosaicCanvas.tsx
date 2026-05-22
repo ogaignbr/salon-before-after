@@ -136,7 +136,7 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
       <div className="flex items-center justify-between px-4 py-3 bg-slate-800 text-white border-b border-white/10">
         <button onClick={onCancel} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Cancel</button>
         <span className="font-semibold text-sm">Mosaic Editor</span>
-        <button onClick={handleSave} className="text-sm text-indigo-400 font-semibold hover:text-indigo-300 transition-colors">Apply</button>
+        <button onClick={handleSave} className="text-sm text-cyan-400 font-semibold hover:text-cyan-300 transition-colors">Apply</button>
       </div>
 
       {/* Canvas area */}
@@ -160,7 +160,7 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
           <button
             onClick={handleAutoDetect}
             disabled={isLoading}
-            className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50 hover:bg-indigo-700 active:scale-[0.98] transition-all"
+            className="flex-1 py-2.5 rounded-xl bg-cyan-600 text-white text-sm font-semibold disabled:opacity-50 hover:bg-cyan-700 active:scale-[0.98] transition-all"
           >
             {isLoading ? 'Loading...' : 'Auto Detect Faces'}
           </button>
@@ -181,7 +181,7 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
             max="80"
             value={brushSize}
             onChange={(e) => setBrushSize(Number(e.target.value))}
-            className="w-full accent-indigo-500"
+            className="w-full accent-cyan-500"
           />
         </div>
 
@@ -193,7 +193,7 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
             max="40"
             value={blockSize}
             onChange={(e) => setBlockSize(Number(e.target.value))}
-            className="w-full accent-indigo-500"
+            className="w-full accent-cyan-500"
           />
         </div>
       </div>

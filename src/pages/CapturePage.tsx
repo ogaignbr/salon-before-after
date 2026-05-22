@@ -76,13 +76,13 @@ export default function CapturePage() {
         <AppHeader title="基準画像を選択" onBack={() => navigate('/home')} backLabel="ホーム" />
 
         <div className="flex-1 space-y-5 overflow-y-auto px-1 pb-2 pt-1 animate-slide-up">
-          <div className="rounded-[16px] border border-[#B9A7FF]/30 bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]">
-            <p className="text-sm font-semibold text-[#161B5C] dark:text-slate-100">合わせたい画像を選ぶ</p>
-            <p className="mt-1 text-xs leading-relaxed text-[#6B6F8A] dark:text-slate-400">
+          <div className="rounded-[16px] border border-[#A8DDE5]/30 bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_10px_28px_rgba(60,140,170,0.10)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]">
+            <p className="text-sm font-semibold text-[#1B3A5C] dark:text-slate-100">合わせたい画像を選ぶ</p>
+            <p className="mt-1 text-xs leading-relaxed text-[#5B7689] dark:text-slate-400">
               過去の写真や参考画像を選ぶと、撮影中に半透明で重ねて表示されます。画像はアプリ内に保存されません。
             </p>
 
-            <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-[#6B4CFF]/60 bg-white px-4 py-3 text-sm font-bold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100">
+            <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-[#3DC4A8]/60 bg-white px-4 py-3 text-sm font-bold text-[#3DC4A8] shadow-[0_10px_28px_rgba(60,140,170,0.10)] transition-all hover:bg-[#F0FBF8] active:scale-[0.99] dark:border-cyan-300/20 dark:bg-slate-900/45 dark:text-slate-100">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75A2.25 2.25 0 016 4.5h12a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0118 19.5H6a2.25 2.25 0 01-2.25-2.25V6.75z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 14.25l2.1-2.1a1.5 1.5 0 012.121 0l.558.559a1.5 1.5 0 002.121 0l.6-.6" />
@@ -94,7 +94,7 @@ export default function CapturePage() {
           </div>
 
           {referenceImage && referencePreview ? (
-            <div className="animate-slide-up rounded-[16px] border border-[#B9A7FF]/30 bg-[rgba(255,255,255,0.92)] p-3 shadow-[0_12px_32px_rgba(85,70,180,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45">
+            <div className="animate-slide-up rounded-[16px] border border-[#A8DDE5]/30 bg-[rgba(255,255,255,0.92)] p-3 shadow-[0_12px_32px_rgba(60,140,170,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45">
               <img
                 src={referencePreview}
                 alt="選択した基準画像"
@@ -102,13 +102,13 @@ export default function CapturePage() {
               />
             </div>
           ) : (
-            <div className="rounded-[16px] border border-dashed border-[#B9A7FF]/50 bg-white/60 px-4 py-12 text-center dark:border-white/10 dark:bg-slate-900/30">
-              <p className="text-sm font-medium text-[#6B6F8A] dark:text-slate-400">基準画像がまだ選択されていません</p>
+            <div className="rounded-[16px] border border-dashed border-[#A8DDE5]/50 bg-white/60 px-4 py-12 text-center dark:border-white/10 dark:bg-slate-900/30">
+              <p className="text-sm font-medium text-[#5B7689] dark:text-slate-400">基準画像がまだ選択されていません</p>
             </div>
           )}
 
-          <div className="rounded-[16px] border border-[#B9A7FF]/30 bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45">
-            <p className="text-[11px] leading-relaxed text-[#6B6F8A] dark:text-slate-400">
+          <div className="rounded-[16px] border border-[#A8DDE5]/30 bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_10px_28px_rgba(60,140,170,0.10)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45">
+            <p className="text-[11px] leading-relaxed text-[#5B7689] dark:text-slate-400">
               人物や個人情報が写る画像を使う場合は、必要な許可を得たうえで撮影してください。出力前に手動モザイク加工もできます。
             </p>
           </div>
@@ -116,7 +116,7 @@ export default function CapturePage() {
           <button
             onClick={() => setStep('capture')}
             disabled={!referenceImage}
-            className="sheen-wrap w-full rounded-[10px] border border-[#8B5CFF]/30 bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] py-4 text-base font-bold text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)] transition-all hover:brightness-105 active:scale-[0.99] disabled:scale-100 disabled:opacity-30"
+            className="sheen-wrap w-full rounded-[10px] border border-[#5BB5E7]/30 bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] py-4 text-base font-bold text-white shadow-[0_8px_18px_rgba(70,160,200,0.24)] transition-all hover:brightness-105 active:scale-[0.99] disabled:scale-100 disabled:opacity-30"
           >
             撮影を開始する
           </button>
@@ -172,7 +172,7 @@ export default function CapturePage() {
             max="85"
             value={ghostOpacity * 100}
             onChange={(e) => setGhostOpacity(Number(e.target.value) / 100)}
-            className="flex-1 accent-[#6B4CFF]"
+            className="flex-1 accent-[#3DC4A8]"
           />
         </div>
 
@@ -201,7 +201,7 @@ function GuideToggle({ label, active, onClick }: { label: string; active: boolea
     <button
       onClick={onClick}
       className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
-        active ? 'bg-[#6B4CFF]/70 text-white' : 'bg-white/10 text-white/45'
+        active ? 'bg-[#3DC4A8]/70 text-white' : 'bg-white/10 text-white/45'
       }`}
     >
       {label}
