@@ -73,7 +73,7 @@ export default function SubscribePage() {
     clearCheckoutEmail();
     setParams({}, { replace: true });
     await signOut();
-    navigate('/');
+    navigate('/', { replace: true });
   };
 
   if (isSuccess) {
@@ -224,7 +224,7 @@ export default function SubscribePage() {
         <button
           onClick={async () => {
             await signOut();
-            navigate('/');
+            navigate('/', { replace: true });
           }}
           className="mt-3 text-xs text-[#6B6F8A] transition-colors hover:text-[#161B5C] dark:text-slate-500 dark:hover:text-slate-300"
         >

@@ -65,6 +65,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [needsPinChange, setNeedsPinChange] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const clearAuthState = useCallback(() => {
+    setUser(null);
+    setLoginId(null);
+    setSubscription('none');
+    setTrialDaysLeft(0);
+    setNeedsPinChange(false);
+    setHasStripeSubscription(false);
+    setLoading(false);
+  }, []);
+
   const fetchProfileAndSubscription = useCallback(async (userId: string) => {
     const [{ data: profile }, { data: sub }] = await Promise.all([
       supabase
@@ -267,14 +277,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setLoginId(null);
-    setSubscription('none');
-    setTrialDaysLeft(0);
-    setNeedsPinChange(false);
-    setHasStripeSubscription(false);
-  }, []);
+    clearAuthState();
+    if (!isSupabaseConfigured) return;
+
+    try {
+      await invokeWithTimeout(
+        supabase.auth.signOut({ scope: 'local' }),
+        FUNCTION_INVOKE_TIMEOUT_MS,
+      );
+    } catch (error) {
+      console.warn('[auth] signOut failed after local state clear', error);
+    }
+  }, [clearAuthState]);
 
   const completeInitialPinChange = useCallback(async (currentSecretCode: string, nextSecretCode: string) => {
     if (!user) return { error: 'ログイン状態が無効です。再度ログインしてください。' };

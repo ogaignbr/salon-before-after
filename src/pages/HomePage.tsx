@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import pitacameLogo from '../../ぴたカメロゴ.png';
@@ -5,6 +6,7 @@ import pitacameLogo from '../../ぴたカメロゴ.png';
 export default function HomePage() {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
   const useCases = [
     {
       label: '美容',
@@ -48,12 +50,15 @@ export default function HomePage() {
           <p className="max-w-[210px] truncate text-[11px] font-medium text-[#6B6F8A] dark:text-slate-400">{user?.email ?? '----'}</p>
           <button
             onClick={async () => {
+              if (signingOut) return;
+              setSigningOut(true);
               await signOut();
-              navigate('/');
+              navigate('/', { replace: true });
             }}
+            disabled={signingOut}
             className="text-[11px] font-semibold text-[#6B6F8A] transition-colors hover:text-[#161B5C] dark:text-slate-300 dark:hover:text-slate-100"
           >
-            ログアウト
+            {signingOut ? 'ログアウト中...' : 'ログアウト'}
           </button>
         </div>
 
