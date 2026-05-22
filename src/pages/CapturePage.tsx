@@ -1,179 +1,122 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useState, type ChangeEvent } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useCamera } from '../hooks/useCamera';
-import GuideLines from '../components/GuideLines';
 import GhostOverlay from '../components/GhostOverlay';
-import GridOverlay from '../components/GridOverlay';
-import { db } from '../lib/db';
-import type { ShootingPart } from '../types';
+import CompositionGuides from '../components/CompositionGuides';
+import { blobToDataURL } from '../lib/imageProcessor';
 import { AppFrame, AppHeader } from '../components/AppFrame';
 
 export default function CapturePage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const resumeSessionId = searchParams.get('session');
-
+  const location = useLocation();
+  const state = location.state as { referenceImage?: Blob } | null;
   const { videoRef, isReady, error, start, stop, capture, switchCamera, facingMode } = useCamera();
-  const [part, setPart] = useState<ShootingPart>('face');
-  const [customerName, setCustomerName] = useState('');
-  const [step, setStep] = useState<'setup' | 'before' | 'after'>('setup');
-  const [beforeBlob, setBeforeBlob] = useState<Blob | null>(null);
-  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [step, setStep] = useState<'setup' | 'capture'>('setup');
+  const [referenceImage, setReferenceImage] = useState<Blob | null>(() => state?.referenceImage ?? null);
+  const [referencePreview, setReferencePreview] = useState('');
   const [ghostOpacity, setGhostOpacity] = useState(0.35);
-  const [showGuide, setShowGuide] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
+  const [showThirds, setShowThirds] = useState(false);
+  const [showDiagonal, setShowDiagonal] = useState(false);
   const [flash, setFlash] = useState(false);
-  const [consent, setConsent] = useState(false);
 
   useEffect(() => {
-    if (resumeSessionId) {
-      const id = Number(resumeSessionId);
-      db.sessions.get(id).then((s) => {
-        if (s) {
-          setCustomerName(s.customerName);
-          setPart(s.part);
-          setBeforeBlob(s.beforeImage);
-          setSessionId(id);
-          setStep('after');
-        }
-      });
-    }
-  }, [resumeSessionId]);
+    if (!referenceImage) return;
+
+    let active = true;
+    blobToDataURL(referenceImage).then((url) => {
+      if (active) setReferencePreview(url);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [referenceImage]);
 
   useEffect(() => {
-    if (step !== 'setup') {
+    if (step === 'capture') {
       start();
     }
     return () => stop();
-  }, [step]);
+  }, [step, start, stop]);
+
+  const handleReferenceSelect = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setReferenceImage(file);
+  };
 
   const triggerFlash = () => {
     setFlash(true);
-    setTimeout(() => setFlash(false), 150);
+    window.setTimeout(() => setFlash(false), 150);
   };
 
-  const handleCaptureBefore = async () => {
-    const blob = capture();
-    if (!blob) return;
-    triggerFlash();
-    setBeforeBlob(blob);
-
-    const id = await db.sessions.add({
-      customerName: customerName || 'Unnamed',
-      part,
-      beforeImage: blob,
-      createdAt: new Date(),
-    });
-    setSessionId(id);
-    setStep('after');
-  };
-
-  const handleCaptureAfter = async () => {
-    const blob = capture();
-    if (!blob || !beforeBlob || !sessionId) return;
+  const handleCapture = () => {
+    if (!referenceImage) return;
+    const capturedImage = capture();
+    if (!capturedImage) return;
     triggerFlash();
     stop();
-
-    await db.sessions.update(sessionId, {
-      afterImage: blob,
+    navigate('/preview', {
+      state: {
+        referenceImage,
+        capturedImage,
+      },
     });
-
-    navigate(`/preview/${sessionId}`);
   };
 
-  const handleRetakeBefore = async () => {
-    if (sessionId) {
-      await db.sessions.delete(sessionId);
-      setSessionId(null);
-    }
-    setBeforeBlob(null);
-    setStep('before');
+  const handleBackFromCamera = () => {
+    stop();
+    setStep('setup');
   };
 
   if (step === 'setup') {
     return (
       <AppFrame>
-        <AppHeader title="撮影設定" onBack={() => navigate('/home')} backLabel="ホーム" />
+        <AppHeader title="基準画像を選択" onBack={() => navigate('/home')} backLabel="ホーム" />
 
-        <div className="flex-1 space-y-5 px-1 pb-2 pt-1 animate-slide-up">
-          <div className="space-y-2">
-            <label className="text-xs font-semibold tracking-[0.08em] text-[#161B5C] dark:text-slate-300">
-              顧客名
-            </label>
-            <input
-              type="text"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="例: 山田 花子"
-              className="w-full rounded-[10px] border border-[#B8A8F8] bg-white px-4 py-3 text-sm font-medium text-[#161B5C] outline-none transition-all placeholder:text-[#9A9AB0] focus:border-[#6B4CFF] focus:ring-2 focus:ring-[#6B4CFF]/20 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-100 dark:placeholder:text-slate-500"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-semibold tracking-[0.08em] text-[#161B5C] dark:text-slate-300">
-              撮影部位
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setPart('face')}
-                className={`py-4 rounded-[10px] text-sm font-semibold transition-all ${
-                  part === 'face'
-                    ? 'bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)]'
-                    : 'bg-white text-[#6B6F8A] border border-[#6B4CFF]/60 hover:bg-[#F4F2FF] dark:bg-slate-900/45 dark:text-slate-200 dark:border-indigo-300/20'
-                }`}
-              >
-                顔
-              </button>
-              <button
-                onClick={() => setPart('body')}
-                className={`py-4 rounded-[10px] text-sm font-semibold transition-all ${
-                  part === 'body'
-                    ? 'bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)]'
-                    : 'bg-white text-[#6B6F8A] border border-[#6B4CFF]/60 hover:bg-[#F4F2FF] dark:bg-slate-900/45 dark:text-slate-200 dark:border-indigo-300/20'
-                }`}
-              >
-                体
-              </button>
-            </div>
-          </div>
-
-          {/* Consent area */}
-          <div className="rounded-[16px] border border-[#B9A7FF]/30 bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)] space-y-3">
-            <p className="text-[11px] leading-relaxed text-[#6B6F8A] dark:text-slate-400">
-              撮影前に必ずお客様の同意を得てください。写真データはこの端末内に保存され、外部サーバーには送信されません。
+        <div className="flex-1 space-y-5 overflow-y-auto px-1 pb-2 pt-1 animate-slide-up">
+          <div className="rounded-[16px] border border-[#B9A7FF]/30 bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]">
+            <p className="text-sm font-semibold text-[#161B5C] dark:text-slate-100">合わせたい画像を選ぶ</p>
+            <p className="mt-1 text-xs leading-relaxed text-[#6B6F8A] dark:text-slate-400">
+              過去の写真や参考画像を選ぶと、撮影中に半透明で重ねて表示されます。画像はアプリ内に保存されません。
             </p>
-            <label className="flex items-start gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                className="mt-0.5 w-4 h-4 accent-[#6B4CFF] rounded flex-shrink-0"
-              />
-              <span className="text-[11px] leading-snug text-[#161B5C] dark:text-slate-300">
-                お客様の同意を取得しました。
-                <button
-                  type="button"
-                  onClick={() => navigate('/privacy')}
-                  className="ml-1 text-[#6B4CFF] hover:text-[#8B5CFF] dark:text-indigo-300 dark:hover:text-indigo-200"
-                >
-                  プライバシー
-                </button>
-                {' / '}
-                <button
-                  type="button"
-                  onClick={() => navigate('/terms')}
-                  className="text-[#6B4CFF] hover:text-[#8B5CFF] dark:text-indigo-300 dark:hover:text-indigo-200"
-                >
-                  利用規約
-                </button>
-              </span>
+
+            <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-[#6B4CFF]/60 bg-white px-4 py-3 text-sm font-bold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75A2.25 2.25 0 016 4.5h12a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0118 19.5H6a2.25 2.25 0 01-2.25-2.25V6.75z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 14.25l2.1-2.1a1.5 1.5 0 012.121 0l.558.559a1.5 1.5 0 002.121 0l.6-.6" />
+                <circle cx="8.25" cy="8.75" r="1.1" />
+              </svg>
+              画像を選択
+              <input type="file" accept="image/*" className="hidden" onChange={handleReferenceSelect} />
             </label>
+          </div>
+
+          {referenceImage && referencePreview ? (
+            <div className="animate-slide-up rounded-[16px] border border-[#B9A7FF]/30 bg-[rgba(255,255,255,0.92)] p-3 shadow-[0_12px_32px_rgba(85,70,180,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45">
+              <img
+                src={referencePreview}
+                alt="選択した基準画像"
+                className="max-h-[48vh] w-full rounded-[10px] object-contain bg-slate-950/5 dark:bg-black/30"
+              />
+            </div>
+          ) : (
+            <div className="rounded-[16px] border border-dashed border-[#B9A7FF]/50 bg-white/60 px-4 py-12 text-center dark:border-white/10 dark:bg-slate-900/30">
+              <p className="text-sm font-medium text-[#6B6F8A] dark:text-slate-400">基準画像がまだ選択されていません</p>
+            </div>
+          )}
+
+          <div className="rounded-[16px] border border-[#B9A7FF]/30 bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45">
+            <p className="text-[11px] leading-relaxed text-[#6B6F8A] dark:text-slate-400">
+              人物や個人情報が写る画像を使う場合は、必要な許可を得たうえで撮影してください。出力前に手動モザイク加工もできます。
+            </p>
           </div>
 
           <button
-            onClick={() => setStep('before')}
-            disabled={!consent}
-            className="sheen-wrap w-full rounded-[10px] border border-[#8B5CFF]/30 bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] py-4 text-base font-bold text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-30 disabled:scale-100"
+            onClick={() => setStep('capture')}
+            disabled={!referenceImage}
+            className="sheen-wrap w-full rounded-[10px] border border-[#8B5CFF]/30 bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] py-4 text-base font-bold text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)] transition-all hover:brightness-105 active:scale-[0.99] disabled:scale-100 disabled:opacity-30"
           >
             撮影を開始する
           </button>
@@ -183,105 +126,85 @@ export default function CapturePage() {
   }
 
   return (
-    <div className="h-dvh bg-black flex flex-col relative overflow-hidden">
-      {/* Flash effect */}
-      {flash && <div className="absolute inset-0 bg-white z-50" />}
+    <div className="relative flex h-dvh flex-col overflow-hidden bg-black">
+      {flash && <div className="absolute inset-0 z-50 bg-white" />}
 
-      {/* Header */}
-      <div className="relative z-20 flex items-center justify-between px-4 py-2.5 bg-slate-900/80 backdrop-blur-md text-white border-b border-white/10">
-        <button
-          onClick={() => {
-            stop();
-            if (step === 'after') handleRetakeBefore();
-            else { setStep('setup'); }
-          }}
-          className="text-sm font-medium flex items-center gap-1"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <div className="relative z-20 flex items-center justify-between border-b border-white/10 bg-slate-900/80 px-4 py-2.5 text-white backdrop-blur-md">
+        <button onClick={handleBackFromCamera} className="flex items-center gap-1 text-sm font-medium">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
           戻る
         </button>
-        <span className="font-semibold text-sm tracking-wide">
-          {step === 'before' ? 'BEFORE' : 'AFTER'}
-        </span>
-        <button onClick={switchCamera} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <span className="text-sm font-semibold tracking-wide">基準画像に合わせて撮影</span>
+        <button onClick={switchCamera} className="rounded-lg p-1.5 transition-colors hover:bg-white/10">
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </button>
       </div>
 
-      {/* Camera view */}
-      <div className="flex-1 relative">
+      <div className="relative flex-1">
         <video
           ref={videoRef}
-          className={`absolute inset-0 w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
+          className={`absolute inset-0 h-full w-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
           autoPlay
           playsInline
           muted
         />
 
-        {step === 'after' && beforeBlob && (
-          <GhostOverlay imageBlob={beforeBlob} opacity={ghostOpacity} />
-        )}
-
-        {showGuide && <GuideLines part={part} />}
-        {showGrid && <GridOverlay />}
+        {referenceImage && <GhostOverlay imageBlob={referenceImage} opacity={ghostOpacity} />}
+        <CompositionGuides grid={showGrid} thirds={showThirds} diagonal={showDiagonal} />
 
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-center p-4">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-4 text-center text-white">
             <p className="font-medium">{error}</p>
           </div>
         )}
       </div>
 
-      <div className="pointer-events-none absolute left-5 top-[18%] z-10 h-2 w-2 rounded-full bg-[#6B4CFF]/40 animate-pulse" />
-      <div className="pointer-events-none absolute right-7 top-[38%] z-10 h-1.5 w-1.5 rounded-full bg-[#8B5CFF]/50 animate-pulse" />
-
-      {/* Controls */}
-      <div className="relative z-20 bg-gradient-to-t from-black/95 to-black/70 px-4 py-4 space-y-3">
-        {step === 'after' && (
-          <div className="flex items-center gap-3 px-2">
-            <span className="text-white/70 text-xs font-medium whitespace-nowrap">重ね表示</span>
-            <input
-              type="range"
-              min="0"
-              max="80"
-              value={ghostOpacity * 100}
-              onChange={(e) => setGhostOpacity(Number(e.target.value) / 100)}
-              className="flex-1 accent-[#6B4CFF]"
-            />
-          </div>
-        )}
-
-        {/* Toggle buttons */}
-        <div className="flex justify-center gap-2">
-          <button
-            onClick={() => setShowGuide(!showGuide)}
-            className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition ${showGuide ? 'bg-[#6B4CFF]/60 text-white' : 'bg-white/10 text-white/40'}`}
-          >
-            ガイド {showGuide ? 'ON' : 'OFF'}
-          </button>
-          <button
-            onClick={() => setShowGrid(!showGrid)}
-            className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition ${showGrid ? 'bg-[#6B4CFF]/60 text-white' : 'bg-white/10 text-white/40'}`}
-          >
-            グリッド {showGrid ? 'ON' : 'OFF'}
-          </button>
+      <div className="relative z-20 space-y-3 bg-gradient-to-t from-black/95 to-black/70 px-4 py-4">
+        <div className="flex items-center gap-3 px-2">
+          <span className="whitespace-nowrap text-xs font-medium text-white/70">ゴースト</span>
+          <input
+            type="range"
+            min="0"
+            max="85"
+            value={ghostOpacity * 100}
+            onChange={(e) => setGhostOpacity(Number(e.target.value) / 100)}
+            className="flex-1 accent-[#6B4CFF]"
+          />
         </div>
 
-        {/* Shutter button */}
+        <div className="flex justify-center gap-2">
+          <GuideToggle label="グリッド" active={showGrid} onClick={() => setShowGrid((v) => !v)} />
+          <GuideToggle label="三分割" active={showThirds} onClick={() => setShowThirds((v) => !v)} />
+          <GuideToggle label="斜め線" active={showDiagonal} onClick={() => setShowDiagonal((v) => !v)} />
+        </div>
+
         <div className="flex items-center justify-center">
           <button
-            onClick={step === 'before' ? handleCaptureBefore : handleCaptureAfter}
+            onClick={handleCapture}
             disabled={!isReady}
-            className="w-18 h-18 rounded-full border-[3px] border-white/60 flex items-center justify-center disabled:opacity-30 shadow-lg"
+            className="flex h-18 w-18 items-center justify-center rounded-full border-[3px] border-white/60 shadow-lg disabled:opacity-30"
           >
-            <div className="w-14 h-14 rounded-full bg-white active:bg-slate-200 transition" />
+            <div className="h-14 w-14 rounded-full bg-white transition active:bg-slate-200" />
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+function GuideToggle({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+        active ? 'bg-[#6B4CFF]/70 text-white' : 'bg-white/10 text-white/45'
+      }`}
+    >
+      {label}
+    </button>
   );
 }

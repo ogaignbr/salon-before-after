@@ -28,8 +28,9 @@ export function useCamera() {
       }
       setIsReady(true);
       setError(null);
-    } catch (e: any) {
-      setError('カメラを起動できませんでした: ' + e.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '不明なエラー';
+      setError('カメラを起動できませんでした: ' + message);
       setIsReady(false);
     }
   }, [facingMode]);

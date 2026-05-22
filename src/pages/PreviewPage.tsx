@@ -1,51 +1,85 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { db } from '../lib/db';
-import { createComparisonImage, blobToDataURL } from '../lib/imageProcessor';
-import CompareView from '../components/CompareView';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  blobToDataURL,
+  createComparisonImage,
+  shareOrDownloadImage,
+  type ComparisonLayout,
+} from '../lib/imageProcessor';
 import MosaicCanvas from '../components/MosaicCanvas';
-import type { Session } from '../types';
 import { AppFrame, AppHeader } from '../components/AppFrame';
 
+interface PreviewState {
+  referenceImage?: Blob;
+  capturedImage?: Blob;
+}
+
 export default function PreviewPage() {
-  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [session, setSession] = useState<Session | null>(null);
-  const [editingMosaic, setEditingMosaic] = useState<'before' | 'after' | null>(null);
+  const location = useLocation();
+  const state = location.state as PreviewState | null;
+  const [referenceImage, setReferenceImage] = useState<Blob | null>(() => state?.referenceImage ?? null);
+  const [capturedImage, setCapturedImage] = useState<Blob | null>(() => state?.capturedImage ?? null);
+  const [referenceSrc, setReferenceSrc] = useState('');
+  const [capturedSrc, setCapturedSrc] = useState('');
+  const [editingMosaic, setEditingMosaic] = useState<'reference' | 'captured' | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      db.sessions.get(Number(id)).then((s) => {
-        if (s) setSession(s);
-      });
-    }
-  }, [id]);
+    if (!referenceImage) return;
+    let active = true;
+    blobToDataURL(referenceImage).then((url) => {
+      if (active) setReferenceSrc(url);
+    });
+    return () => {
+      active = false;
+    };
+  }, [referenceImage]);
 
-  if (!session || !session.afterImage) {
+  useEffect(() => {
+    if (!capturedImage) return;
+    let active = true;
+    blobToDataURL(capturedImage).then((url) => {
+      if (active) setCapturedSrc(url);
+    });
+    return () => {
+      active = false;
+    };
+  }, [capturedImage]);
+
+  if (!referenceImage || !capturedImage) {
     return (
       <AppFrame>
-        <div className="flex flex-1 items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-[#B9A7FF] border-t-[#6B4CFF] dark:border-indigo-300/20 dark:border-t-indigo-300" />
-          <p className="text-sm font-medium text-[#6B6F8A] dark:text-slate-500">読み込み中...</p>
-        </div>
+        <AppHeader title="出力" onBack={() => navigate('/capture')} backLabel="撮影" />
+        <div className="flex flex-1 items-center justify-center px-4 text-center">
+          <div>
+            <p className="text-sm font-semibold text-[#161B5C] dark:text-slate-100">画像が見つかりません</p>
+            <p className="mt-2 text-xs leading-relaxed text-[#6B6F8A] dark:text-slate-400">
+              アプリ内には画像を保存しないため、もう一度基準画像を選んで撮影してください。
+            </p>
+            <button
+              onClick={() => navigate('/capture')}
+              className="mt-5 rounded-[10px] bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] px-5 py-3 text-sm font-bold text-white"
+            >
+              撮影へ戻る
+            </button>
+          </div>
         </div>
       </AppFrame>
     );
   }
 
   if (editingMosaic) {
-    const blob = editingMosaic === 'before' ? session.beforeImage : session.afterImage!;
+    const blob = editingMosaic === 'reference' ? referenceImage : capturedImage;
     return (
       <MosaicCanvas
         imageBlob={blob}
-        onSave={async (editedBlob) => {
-          const update = editingMosaic === 'before'
-            ? { beforeImage: editedBlob }
-            : { afterImage: editedBlob };
-          await db.sessions.update(session.id!, update);
-          setSession({ ...session, ...update });
+        onSave={(editedBlob) => {
+          if (editingMosaic === 'reference') {
+            setReferenceImage(editedBlob);
+          } else {
+            setCapturedImage(editedBlob);
+          }
           setEditingMosaic(null);
         }}
         onCancel={() => setEditingMosaic(null)}
@@ -53,118 +87,119 @@ export default function PreviewPage() {
     );
   }
 
-  const handleExport = async () => {
+  const handleSaveCaptured = async () => {
     setIsExporting(true);
     try {
-      const compBlob = await createComparisonImage(session.beforeImage, session.afterImage!);
-      const url = await blobToDataURL(compBlob);
-
-      if (navigator.share) {
-        const file = new File([compBlob], 'before-after.jpg', { type: 'image/jpeg' });
-        await navigator.share({ files: [file] });
-      } else {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `before-after_${session.customerName}_${new Date().toISOString().slice(0, 10)}.jpg`;
-        a.click();
-      }
-    } catch (e: any) {
-      if (e.name !== 'AbortError') {
-        const compBlob = await createComparisonImage(session.beforeImage, session.afterImage!);
-        const url = await blobToDataURL(compBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `before-after_${session.customerName}_${new Date().toISOString().slice(0, 10)}.jpg`;
-        a.click();
-      }
+      await shareOrDownloadImage(capturedImage, `pitacame_${dateStamp()}.jpg`);
     } finally {
       setIsExporting(false);
     }
   };
 
-  const handleShareSingle = async (blob: Blob, label: string) => {
-    if (navigator.share) {
-      try {
-        const file = new File([blob], `${label}.jpg`, { type: 'image/jpeg' });
-        await navigator.share({ files: [file] });
-        return;
-      } catch (e: any) {
-        if (e.name === 'AbortError') return;
-      }
+  const handleSaveComparison = async (layout: ComparisonLayout) => {
+    setIsExporting(true);
+    try {
+      const blob = await createComparisonImage(referenceImage, capturedImage, layout);
+      await shareOrDownloadImage(blob, `pitacame_compare_${layout}_${dateStamp()}.jpg`);
+    } finally {
+      setIsExporting(false);
     }
-    const url = await blobToDataURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${label}_${session.customerName}.jpg`;
-    a.click();
   };
 
   return (
     <AppFrame>
-      <AppHeader title="プレビュー" onBack={() => navigate('/home')} backLabel="ホーム" />
+      <AppHeader title="出力" onBack={() => navigate('/capture')} backLabel="撮影" />
 
-      {/* Customer info */}
-      <div className="mb-3 rounded-[16px] border border-[#B9A7FF]/30 bg-[rgba(255,255,255,0.92)] px-4 py-3 shadow-[0_12px_32px_rgba(85,70,180,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]">
-        <p className="font-semibold text-[#161B5C] dark:text-slate-100">{session.customerName}</p>
-        <div className="flex items-center gap-2 mt-0.5">
-          <p className="text-xs font-medium text-[#6B6F8A] dark:text-slate-500">
-            {new Date(session.createdAt).toLocaleDateString('ja-JP')}
-          </p>
-          <span className="text-xs text-[#DCD7FF] dark:text-slate-600">|</span>
-          <p className="text-xs font-medium text-[#6B6F8A] dark:text-slate-500">
-            {session.part === 'face' ? '顔' : '体'}
-          </p>
+      <div className="flex-1 space-y-4 overflow-y-auto px-1 pb-4 animate-slide-up">
+        <div className="grid grid-cols-2 gap-2">
+          <ImagePanel label="基準画像" src={referenceSrc} />
+          <ImagePanel label="撮影画像" src={capturedSrc} accent />
         </div>
-      </div>
 
-      {/* Compare view */}
-      <div className="animate-slide-up px-1 pb-4">
-        <CompareView beforeBlob={session.beforeImage} afterBlob={session.afterImage!} />
-      </div>
-
-      {/* Mosaic buttons */}
-      <div className="animate-slide-up space-y-2 px-1" style={{ animationDelay: '0.1s' }}>
-        <p className="text-xs font-semibold tracking-[0.08em] text-[#161B5C] dark:text-slate-300">モザイク編集</p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setEditingMosaic('before')}
-            className="flex-1 rounded-[10px] border border-[#6B4CFF]/60 bg-white py-2.5 text-sm font-semibold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
-          >
-            Beforeを編集
-          </button>
-          <button
-            onClick={() => setEditingMosaic('after')}
-            className="flex-1 rounded-[10px] border border-[#6B4CFF]/60 bg-white py-2.5 text-sm font-semibold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
-          >
-            Afterを編集
-          </button>
+        <div className="rounded-[16px] border border-[#B9A7FF]/30 bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_12px_32px_rgba(85,70,180,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45">
+          <p className="text-xs font-semibold tracking-[0.08em] text-[#161B5C] dark:text-slate-300">モザイク加工</p>
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => setEditingMosaic('reference')}
+              className="flex-1 rounded-[10px] border border-[#6B4CFF]/60 bg-white py-2.5 text-sm font-semibold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100"
+            >
+              基準画像
+            </button>
+            <button
+              onClick={() => setEditingMosaic('captured')}
+              className="flex-1 rounded-[10px] border border-[#6B4CFF]/60 bg-white py-2.5 text-sm font-semibold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100"
+            >
+              撮影画像
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Action buttons */}
-      <div className="mt-auto space-y-2 px-1 pb-1 pt-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-        <button
-          onClick={handleExport}
-          disabled={isExporting}
-          className="sheen-wrap animate-subtle-pulse w-full rounded-[10px] border border-[#8B5CFF]/30 bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] py-3.5 font-bold text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
-        >
-          {isExporting ? '書き出し中...' : '比較画像を書き出し・共有'}
-        </button>
-        <div className="flex gap-2">
+        <div className="rounded-[16px] border border-[#B9A7FF]/30 bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_12px_32px_rgba(85,70,180,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45">
+          <p className="text-xs font-semibold tracking-[0.08em] text-[#161B5C] dark:text-slate-300">保存・共有</p>
+          <div className="mt-3 space-y-2">
+            <button
+              onClick={handleSaveCaptured}
+              disabled={isExporting}
+              className="sheen-wrap w-full rounded-[10px] border border-[#8B5CFF]/30 bg-[linear-gradient(135deg,#6B4CFF_0%,#7B54FF_48%,#8B5CFF_100%)] py-3.5 font-bold text-white shadow-[0_8px_18px_rgba(90,65,230,0.24)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
+            >
+              撮影画像だけ保存
+            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => handleSaveComparison('horizontal')}
+                disabled={isExporting}
+                className="rounded-[10px] border border-[#6B4CFF]/60 bg-white py-3 text-sm font-semibold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] transition-all hover:bg-[#F4F2FF] active:scale-[0.99] disabled:opacity-50 dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100"
+              >
+                左右比較で保存
+              </button>
+              <button
+                onClick={() => handleSaveComparison('vertical')}
+                disabled={isExporting}
+                className="rounded-[10px] border border-[#6B4CFF]/60 bg-white py-3 text-sm font-semibold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] transition-all hover:bg-[#F4F2FF] active:scale-[0.99] disabled:opacity-50 dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100"
+              >
+                上下比較で保存
+              </button>
+            </div>
+          </div>
+          {isExporting && <p className="mt-3 text-center text-xs font-medium text-[#6B6F8A] dark:text-slate-400">出力中...</p>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => handleShareSingle(session.beforeImage, 'before')}
-            className="flex-1 rounded-[10px] border border-[#6B4CFF]/60 bg-white py-2.5 text-sm font-semibold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
+            onClick={() => navigate('/capture', { state: { referenceImage } })}
+            className="rounded-[10px] border border-[#6B4CFF]/60 bg-white py-3 text-sm font-semibold text-[#161B5C] shadow-[0_10px_28px_rgba(85,70,180,0.10)] transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100"
           >
-            Beforeのみ
+            撮り直し
           </button>
           <button
-            onClick={() => handleShareSingle(session.afterImage!, 'after')}
-            className="flex-1 rounded-[10px] border border-[#6B4CFF]/60 bg-white py-2.5 text-sm font-semibold text-[#6B4CFF] shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
+            onClick={() => navigate('/capture')}
+            className="rounded-[10px] border border-[#6B4CFF]/60 bg-white py-3 text-sm font-semibold text-[#161B5C] shadow-[0_10px_28px_rgba(85,70,180,0.10)] transition-all hover:bg-[#F4F2FF] active:scale-[0.99] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100"
           >
-            Afterのみ
+            画像を選び直す
           </button>
         </div>
       </div>
     </AppFrame>
   );
+}
+
+function ImagePanel({ label, src, accent = false }: { label: string; src: string; accent?: boolean }) {
+  return (
+    <div className="rounded-[16px] border border-[#B9A7FF]/30 bg-[rgba(255,255,255,0.92)] p-2 shadow-[0_10px_28px_rgba(85,70,180,0.10)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45">
+      <p className={`mb-2 text-center text-[11px] font-semibold ${accent ? 'text-[#6B4CFF]' : 'text-[#6B6F8A] dark:text-slate-400'}`}>
+        {label}
+      </p>
+      {src && (
+        <img
+          src={src}
+          alt={label}
+          className="aspect-[3/4] w-full rounded-[10px] bg-slate-950/5 object-cover dark:bg-black/30"
+        />
+      )}
+    </div>
+  );
+}
+
+function dateStamp() {
+  return new Date().toISOString().slice(0, 10).replaceAll('-', '');
 }

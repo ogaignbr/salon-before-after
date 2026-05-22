@@ -65,7 +65,7 @@ export default function HomePage() {
               className="mx-auto h-auto w-full max-w-[240px] rounded-[10px]"
             />
           </div>
-          <p className="mt-1 text-[14px] font-medium text-[#6B6F8A] dark:text-slate-400">同じ角度で撮れる比較カメラ</p>
+          <p className="mt-1 text-[14px] font-medium text-[#6B6F8A] dark:text-slate-400">好きな画像にぴたっと合わせて撮れるカメラ</p>
         </div>
 
         <div className="space-y-3 animate-slide-up" style={{ animationDelay: '0.08s' }}>
@@ -77,19 +77,7 @@ export default function HomePage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 9a2 2 0 012-2h1.3a2 2 0 001.6-.8l.42-.56A2 2 0 0111.12 5h1.76a2 2 0 011.8 1.12l.42.56a2 2 0 001.6.8H18a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2V9z" />
               <circle cx="12" cy="12.5" r="2.8" />
             </svg>
-            撮影をはじめる
-          </button>
-
-          <button
-            onClick={() => navigate('/history')}
-            className="flex w-full items-center justify-center gap-2.5 rounded-[12px] border border-[#6B4CFF]/60 bg-white px-4 py-4 text-[20px] font-bold text-[#161B5C] shadow-[0_12px_32px_rgba(85,70,180,0.12)] backdrop-blur-xl transition-all hover:bg-[#F4F2FF] active:scale-[0.985] dark:border-indigo-300/20 dark:bg-slate-900/45 dark:text-slate-100 dark:shadow-[0_16px_34px_-26px_rgba(45,74,152,0.85)]"
-          >
-            <svg className="h-5 w-5 text-[#6B4CFF] dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75A2.25 2.25 0 016 4.5h12a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0118 19.5H6a2.25 2.25 0 01-2.25-2.25V6.75z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 14.25l2.1-2.1a1.5 1.5 0 012.121 0l.558.559a1.5 1.5 0 002.121 0l.6-.6" />
-              <circle cx="8.25" cy="8.75" r="1.1" />
-            </svg>
-            記録を見る
+            画像に合わせて撮る
           </button>
         </div>
 
@@ -116,7 +104,7 @@ export default function HomePage() {
         </div>
 
         <div className="mt-auto pt-8 text-center animate-fade-in" style={{ animationDelay: '0.25s' }}>
-          <p className="mb-3 text-xs font-medium tracking-[0.06em] text-[#6B6F8A] dark:text-slate-400">ぴたっと合わせて、変化を伝える</p>
+          <p className="mb-3 text-xs font-medium tracking-[0.06em] text-[#6B6F8A] dark:text-slate-400">その場で撮って、その場で保存</p>
           <div className="mx-auto flex w-fit items-center gap-3 rounded-[16px] border border-[#DCD7FF] bg-white px-4 py-1.5 text-xs text-[#6B6F8A] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-400">
             <button onClick={() => navigate('/terms')} className="transition-colors hover:text-[#161B5C] dark:hover:text-slate-200">
               利用規約

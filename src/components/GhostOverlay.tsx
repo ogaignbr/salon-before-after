@@ -18,7 +18,7 @@ export default function GhostOverlay({ imageBlob, opacity }: Props) {
   return (
     <img
       src={src}
-      alt="ビフォー写真オーバーレイ"
+      alt="基準画像オーバーレイ"
       className="absolute inset-0 w-full h-full object-cover pointer-events-none z-5"
       style={{ opacity }}
     />

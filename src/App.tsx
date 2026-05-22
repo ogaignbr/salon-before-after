@@ -5,7 +5,6 @@ import AuthGuard from './components/AuthGuard';
 import HomePage from './pages/HomePage';
 import CapturePage from './pages/CapturePage';
 import PreviewPage from './pages/PreviewPage';
-import HistoryPage from './pages/HistoryPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsPage from './pages/TermsPage';
 import LoginPage from './pages/LoginPage';
@@ -68,8 +67,7 @@ export default function App() {
 
             <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
             <Route path="/capture" element={<AuthGuard><CapturePage /></AuthGuard>} />
-            <Route path="/preview/:id" element={<AuthGuard><PreviewPage /></AuthGuard>} />
-            <Route path="/history" element={<AuthGuard><HistoryPage /></AuthGuard>} />
+            <Route path="/preview" element={<AuthGuard><PreviewPage /></AuthGuard>} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
