@@ -12,12 +12,42 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const LEGACY_AUTH_SYNC_TIMEOUT_MS = 12000;
+
 async function hashPin(pin: string): Promise<string> {
   const encoder = new TextEncoder();
   const bytes = encoder.encode(pin);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   const hashArray = Array.from(new Uint8Array(digest));
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function syncLegacyAuthPassword(userId: string, pin: string) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), LEGACY_AUTH_SYNC_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${Deno.env.get('SUPABASE_URL')!}/auth/v1/admin/users/${userId}`, {
+      method: 'PUT',
+      signal: controller.signal,
+      headers: {
+        apikey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ password: `PIN-${pin}` }),
+    });
+    if (!response.ok) {
+      console.warn('[reset-pin-admin] legacy auth password sync failed', response.status);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.warn('[reset-pin-admin] legacy auth password sync timed out or failed', error);
+    return false;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -72,8 +102,10 @@ Deno.serve(async (req) => {
       );
     }
 
+    const legacyAuthSynced = await syncLegacyAuthPassword(profile.user_id, nextPin);
+
     return new Response(
-      JSON.stringify({ success: true, message: 'PINを初期化しました。' }),
+      JSON.stringify({ success: true, message: 'PINを初期化しました。', legacyAuthSynced }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {

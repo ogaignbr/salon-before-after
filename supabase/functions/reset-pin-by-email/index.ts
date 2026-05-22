@@ -8,6 +8,8 @@ const corsHeaders = {
 };
 
 const INTERNAL_REQUEST_TIMEOUT_MS = 10000;
+const LEGACY_AUTH_SYNC_TIMEOUT_MS = 12000;
+
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -60,6 +62,27 @@ function isUsableSubscription(sub: { status?: string | null; trial_end?: string 
   return new Date(sub.trial_end).getTime() > Date.now();
 }
 
+async function syncLegacyAuthPassword(userId: string, pin: string) {
+  try {
+    const response = await supabaseFetch(`/auth/v1/admin/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ password: `PIN-${pin}` }),
+    }, LEGACY_AUTH_SYNC_TIMEOUT_MS);
+
+    if (!response.ok) {
+      console.warn('[reset-pin-by-email] legacy auth password sync failed', {
+        status: response.status,
+        message: await readErrorMessage(response, 'auth sync failed'),
+      });
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.warn('[reset-pin-by-email] legacy auth password sync timed out or failed', error);
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -108,7 +131,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: false, message: '有効な契約中のメールアドレスではありません。' }, 403);
     }
 
-    const pinHash = await hashPin(String(nextPin));
+    const newPin = String(nextPin);
+    const pinHash = await hashPin(newPin);
     const updateResponse = await supabaseFetch(`/rest/v1/member_profiles?user_id=eq.${profile.user_id}`, {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
@@ -123,7 +147,15 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: false, message }, 500);
     }
 
-    return jsonResponse({ success: true, message: 'PINを更新しました。新しいPINでログインしてください。' });
+    // New clients authenticate against member_profiles.pin_hash. This best-effort mirror keeps
+    // already-installed cached clients working until their service worker updates.
+    const legacyAuthSynced = await syncLegacyAuthPassword(profile.user_id, newPin);
+
+    return jsonResponse({
+      success: true,
+      message: 'PINを更新しました。新しいPINでログインしてください。',
+      legacyAuthSynced,
+    });
   } catch (error) {
     return jsonResponse(
       { success: false, message: (error as Error).message ?? '想定外のエラーが発生しました。' },
