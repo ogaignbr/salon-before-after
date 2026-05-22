@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+const INTERNAL_REQUEST_TIMEOUT_MS = 10000;
+const AUTH_UPDATE_ATTEMPTS = 3;
+
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -22,16 +25,24 @@ async function hashPin(pin: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function supabaseFetch(path: string, init: RequestInit = {}) {
-  return fetch(`${supabaseUrl}${path}`, {
-    ...init,
-    headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-      'Content-Type': 'application/json',
-      ...(init.headers ?? {}),
-    },
-  });
+async function supabaseFetch(path: string, init: RequestInit = {}, timeoutMs = INTERNAL_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(`${supabaseUrl}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        ...(init.headers ?? {}),
+      },
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 async function readErrorMessage(response: Response, fallback: string) {
@@ -49,6 +60,30 @@ function isUsableSubscription(sub: { status?: string | null; trial_end?: string 
   if (sub.status !== 'trialing') return false;
   if (!sub.trial_end) return false;
   return new Date(sub.trial_end).getTime() > Date.now();
+}
+
+async function updateAuthPassword(userId: string, pin: string) {
+  let lastMessage = '認証情報の更新に失敗しました。';
+
+  for (let attempt = 1; attempt <= AUTH_UPDATE_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await supabaseFetch(`/auth/v1/admin/users/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ password: `PIN-${pin}` }),
+      }, 15000);
+
+      if (response.ok) return { ok: true, message: null };
+      lastMessage = await readErrorMessage(response, lastMessage);
+    } catch (error) {
+      lastMessage = error instanceof DOMException && error.name === 'AbortError'
+        ? '認証情報の更新がタイムアウトしました。'
+        : error instanceof Error
+          ? error.message
+          : lastMessage;
+    }
+  }
+
+  return { ok: false, message: lastMessage };
 }
 
 Deno.serve(async (req) => {
@@ -100,13 +135,9 @@ Deno.serve(async (req) => {
     }
 
     const newPin = String(nextPin);
-    const authResponse = await supabaseFetch(`/auth/v1/admin/users/${profile.user_id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ password: `PIN-${newPin}` }),
-    });
-    if (!authResponse.ok) {
-      const message = await readErrorMessage(authResponse, '認証情報の更新に失敗しました。');
-      return jsonResponse({ success: false, message }, 500);
+    const authUpdate = await updateAuthPassword(profile.user_id, newPin);
+    if (!authUpdate.ok) {
+      return jsonResponse({ success: false, message: authUpdate.message }, 500);
     }
 
     const pinHash = await hashPin(newPin);

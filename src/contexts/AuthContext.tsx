@@ -1,13 +1,13 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from '../lib/supabase';
 import type { SubscriptionStatus } from '../types';
 
 const NOT_CONFIGURED_MESSAGE =
   'サーバー設定が未完了のため、現在ログインできません。管理者にお問い合わせください。';
 const AUTH_BOOT_TIMEOUT_MS = 8000;
 const FUNCTION_INVOKE_TIMEOUT_MS = 12000;
-const RESET_PIN_TIMEOUT_MS = 45000;
+const RESET_PIN_TIMEOUT_MS = 60000;
 
 function timeoutErrorMessage(error: unknown) {
   if (error instanceof Error && /timeout/i.test(error.message)) {
@@ -297,21 +297,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPinByEmail = useCallback(async (email: string, nextPin: string) => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_MESSAGE, message: null };
+    if (!supabaseUrl || !supabaseAnonKey) return { error: NOT_CONFIGURED_MESSAGE, message: null };
     if (!email.trim()) return { error: 'メールアドレスを入力してください。', message: null };
     if (!/^\d{4}$/.test(nextPin)) return { error: '新しいPINは4桁の数字で入力してください。', message: null };
 
-    try {
-      const { data, error } = await invokeWithTimeout(
-        supabase.functions.invoke('reset-pin-by-email', {
-          body: { email: email.trim().toLowerCase(), nextPin },
-        }),
-        RESET_PIN_TIMEOUT_MS,
-      );
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), RESET_PIN_TIMEOUT_MS);
 
-      if (error || !data?.success) {
-        const message = (data?.message as string | undefined)
-          ?? error?.message
-          ?? 'PINの更新に失敗しました。';
+    try {
+      const response = await fetch(`${supabaseUrl}/functions/v1/reset-pin-by-email`, {
+        method: 'POST',
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), nextPin }),
+        signal: controller.signal,
+      });
+      const data = await response.json().catch(() => null) as { success?: boolean; message?: string } | null;
+
+      if (!response.ok || !data?.success) {
+        const message = data?.message ?? 'PINの更新に失敗しました。';
         return { error: message, message: null };
       }
 
@@ -320,7 +327,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         message: (data.message as string | undefined) ?? 'PINを更新しました。新しいPINでログインしてください。',
       };
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return { error: 'PIN更新がタイムアウトしました。時間をおいてもう一度お試しください。', message: null };
+      }
       return { error: timeoutErrorMessage(error), message: null };
+    } finally {
+      window.clearTimeout(timeoutId);
     }
   }, []);
 
