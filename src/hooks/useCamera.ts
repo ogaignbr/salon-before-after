@@ -13,14 +13,29 @@ export function useCamera() {
         streamRef.current.getTracks().forEach((t) => t.stop());
       }
       const mode = facing ?? facingMode;
+      // 最大解像度を要求し、センサー全体を使うことでネイティブカメラと同じ画角にする
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: mode,
-          width: { ideal: 1080 },
-          height: { ideal: 1440 },
+          width: { ideal: 4032 },
+          height: { ideal: 3024 },
         },
         audio: false,
       });
+
+      // zoom を最小値に設定し、ネイティブ1xと同等の画角にする
+      const track = stream.getVideoTracks()[0];
+      try {
+        const caps = track.getCapabilities?.();
+        if (caps?.zoom) {
+          await track.applyConstraints({
+            advanced: [{ zoom: caps.zoom.min } as MediaTrackConstraintSet],
+          });
+        }
+      } catch {
+        // zoom 非対応の端末では無視
+      }
+
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
