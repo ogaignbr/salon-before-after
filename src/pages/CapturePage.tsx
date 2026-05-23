@@ -144,23 +144,25 @@ export default function CapturePage() {
         </button>
       </div>
 
-      <div className="relative flex-1">
-        <video
-          ref={videoRef}
-          className={`absolute inset-0 h-full w-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
-          autoPlay
-          playsInline
-          muted
-        />
+      <div className="relative flex-1 flex items-center justify-center bg-black">
+        <div className="relative w-full aspect-[3/4] max-h-full overflow-hidden">
+          <video
+            ref={videoRef}
+            className={`absolute inset-0 h-full w-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
+            autoPlay
+            playsInline
+            muted
+          />
 
-        {referenceImage && <GhostOverlay imageBlob={referenceImage} opacity={ghostOpacity} />}
-        <CompositionGuides grid={showGrid} thirds={showThirds} diagonal={showDiagonal} />
+          {referenceImage && <GhostOverlay imageBlob={referenceImage} opacity={ghostOpacity} />}
+          <CompositionGuides grid={showGrid} thirds={showThirds} diagonal={showDiagonal} />
 
-        {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-4 text-center text-white">
-            <p className="font-medium">{error}</p>
-          </div>
-        )}
+          {error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-4 text-center text-white">
+              <p className="font-medium">{error}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="relative z-20 space-y-3 bg-gradient-to-t from-black/95 to-black/70 px-4 py-4">

@@ -19,6 +19,21 @@ const TOC_ITEMS: TocItem[] = [
   { id: 'usecases-and-tips', label: '活用シーン', description: 'サロン、成長記録、商品撮影、作業記録などの活用例' },
 ];
 
+function ManualImage({ src, alt }: { src: string; alt: string }) {
+  const baseUrl = import.meta.env.BASE_URL;
+
+  return (
+    <figure className="my-3 overflow-hidden rounded-[14px] border border-[#A8DDE5]/45 bg-white/85 p-2 shadow-[0_10px_24px_rgba(60,140,170,0.10)] dark:border-white/10 dark:bg-slate-900/40">
+      <img
+        src={`${baseUrl}manual-images/${src}`}
+        alt={alt}
+        className="h-auto w-full rounded-[10px]"
+        loading="lazy"
+      />
+    </figure>
+  );
+}
+
 export default function ManualPage() {
   const navigate = useNavigate();
 
@@ -66,18 +81,22 @@ export default function ManualPage() {
             <h2 className="text-sm font-black text-[#3DC4A8] dark:text-cyan-300">1. 新規登録する</h2>
 
             <h3 className="mt-3 text-xs font-bold text-[#1B3A5C] dark:text-slate-200">1.1 新規登録画面を開く</h3>
+            <ManualImage src="signup-open.png" alt="新規登録画面を開く" />
             <ol className="list-decimal space-y-0.5 pl-5">
               <li>ログイン画面を開きます。</li>
               <li>「新規登録」を選択します。</li>
             </ol>
 
             <h3 className="mt-3 text-xs font-bold text-[#1B3A5C] dark:text-slate-200">1.2 メールアドレスを入力する</h3>
+            <ManualImage src="signup-email.png" alt="メールアドレスを入力する" />
             <ol className="list-decimal space-y-0.5 pl-5">
               <li>登録に使うメールアドレスを入力します。</li>
               <li>「登録して無料トライアルを開始」を選択します。</li>
             </ol>
 
             <h3 className="mt-3 text-xs font-bold text-[#1B3A5C] dark:text-slate-200">1.3 決済画面で手続きを完了する</h3>
+            <ManualImage src="checkout-1.png" alt="決済画面で手続きを完了する 1" />
+            <ManualImage src="checkout-2.png" alt="決済画面で手続きを完了する 2" />
             <ol className="list-decimal space-y-0.5 pl-5">
               <li>Stripeの決済画面が表示されます。</li>
               <li>画面の案内に沿って支払い方法を入力します。</li>
@@ -88,6 +107,7 @@ export default function ManualPage() {
             </p>
 
             <h3 className="mt-3 text-xs font-bold text-[#1B3A5C] dark:text-slate-200">1.4 登録完了画面を確認する</h3>
+            <ManualImage src="signup-complete.png" alt="登録完了画面を確認する" />
             <p>登録が完了すると、ログイン情報が表示されます。</p>
             <ul className="list-disc space-y-0.5 pl-5">
               <li>登録メールアドレス</li>
@@ -109,6 +129,7 @@ export default function ManualPage() {
             </ol>
 
             <h3 id="change-pin" className="mt-3 text-xs font-bold text-[#1B3A5C] scroll-mt-20 dark:text-slate-200">2.2 初回PINを変更する</h3>
+            <ManualImage src="change-pin.png" alt="初回PINを変更する" />
             <p>
               初回ログイン時は、初期PIN <code className="rounded bg-[#F0FBF8] px-1 py-0.5 text-[10px] font-mono text-[#3DC4A8] dark:bg-cyan-500/15 dark:text-cyan-300">0000</code> から任意の4桁PINへ変更します。
             </p>
@@ -138,6 +159,7 @@ export default function ManualPage() {
             </ul>
 
             <h3 className="mt-3 text-xs font-bold text-[#1B3A5C] dark:text-slate-200">3.2 撮影を開始する</h3>
+            <ManualImage src="start-capture.png" alt="撮影を開始する" />
             <ol className="list-decimal space-y-0.5 pl-5">
               <li>ホーム画面で「撮影を開始」を選択します。</li>
               <li>基準画像選択画面へ進みます。</li>
@@ -160,6 +182,7 @@ export default function ManualPage() {
             </ul>
 
             <h3 className="mt-3 text-xs font-bold text-[#1B3A5C] dark:text-slate-200">4.2 端末内の画像を選択する</h3>
+            <ManualImage src="select-reference.png" alt="端末内の画像を選択する" />
             <ol className="list-decimal space-y-0.5 pl-5">
               <li>「基準画像を選択」を選択します。</li>
               <li>端末の写真フォルダから画像を選びます。</li>
@@ -189,6 +212,9 @@ export default function ManualPage() {
             </ul>
 
             <h3 id="ghost-and-guides" className="mt-3 text-xs font-bold text-[#1B3A5C] scroll-mt-20 dark:text-slate-200">5.2 ゴースト表示を使う</h3>
+            <ManualImage src="ghost-1.png" alt="ゴースト表示を使う 1" />
+            <ManualImage src="ghost-2.png" alt="ゴースト表示を使う 2" />
+            <ManualImage src="ghost-3.png" alt="ゴースト表示を使う 3" />
             <p>ゴースト表示は、基準画像を半透明で重ねる機能です。</p>
             <ol className="list-decimal space-y-0.5 pl-5">
               <li>画面上の基準画像を見ながら、被写体の位置を合わせます。</li>
@@ -197,6 +223,9 @@ export default function ManualPage() {
             </ol>
 
             <h3 className="mt-3 text-xs font-bold text-[#1B3A5C] dark:text-slate-200">5.3 ガイド線を使う</h3>
+            <ManualImage src="guide-grid.png" alt="ガイド線を使う グリッド" />
+            <ManualImage src="guide-thirds.png" alt="ガイド線を使う 三分割" />
+            <ManualImage src="guide-diagonal.png" alt="ガイド線を使う 斜め線" />
             <p>構図を合わせやすくするため、必要に応じてガイド線を表示できます。</p>
             <ul className="list-disc space-y-0.5 pl-5">
               <li><strong>グリッド:</strong> 細かい位置合わせに使います。</li>
@@ -222,6 +251,7 @@ export default function ManualPage() {
             <h2 className="text-sm font-black text-[#3DC4A8] dark:text-cyan-300">6. 撮影後の確認と加工</h2>
 
             <h3 className="mt-3 text-xs font-bold text-[#1B3A5C] dark:text-slate-200">6.1 出力画面の見方</h3>
+            <ManualImage src="output-overview.png" alt="出力画面の見方" />
             <p>出力画面では、撮影した画像を確認し、必要に応じて加工や保存方法を選択します。</p>
             <p>主な操作:</p>
             <ul className="list-disc space-y-0.5 pl-5">
@@ -237,6 +267,7 @@ export default function ManualPage() {
             </ul>
 
             <h3 id="mosaic" className="mt-3 text-xs font-bold text-[#1B3A5C] scroll-mt-20 dark:text-slate-200">6.2 モザイク加工をする</h3>
+            <ManualImage src="mosaic.png" alt="モザイク加工をする" />
             <p>顔、個人情報、背景の一部などを隠したい場合は、手動モザイク加工を使います。</p>
             <ol className="list-decimal space-y-0.5 pl-5">
               <li>「基準画像をモザイク加工」または「撮影画像をモザイク加工」を選択します。</li>
@@ -255,6 +286,7 @@ export default function ManualPage() {
             <h2 className="text-sm font-black text-[#3DC4A8] dark:text-cyan-300">7. 画像を保存・共有する</h2>
 
             <h3 className="mt-3 text-xs font-bold text-[#1B3A5C] dark:text-slate-200">7.1 撮影画像のみ保存する</h3>
+            <ManualImage src="save-photo-only.png" alt="撮影画像のみ保存する" />
             <p>撮影した写真だけを保存したい場合に使います。</p>
             <ol className="list-decimal space-y-0.5 pl-5">
               <li>出力画面で「撮影画像のみ保存」を選択します。</li>
@@ -285,6 +317,7 @@ export default function ManualPage() {
             <h2 className="text-sm font-black text-[#3DC4A8] dark:text-cyan-300">8. 解約する</h2>
 
             <h3 className="mt-3 text-xs font-bold text-[#1B3A5C] dark:text-slate-200">8.1 解約手続きへ進む</h3>
+            <ManualImage src="cancel.png" alt="解約手続きへ進む" />
             <ol className="list-decimal space-y-0.5 pl-5">
               <li>ぴたカメにログインします。</li>
               <li>ホーム画面から「利用規約」を開きます。</li>

@@ -35,16 +35,18 @@ export async function createComparisonImage(
   };
 
   if (layout === 'horizontal') {
-    const maxH = Math.max(referenceImg.height, capturedImg.height);
-    const referenceW = referenceImg.width * (maxH / referenceImg.height);
-    const capturedW = capturedImg.width * (maxH / capturedImg.height);
+    // 両方を同じ幅に統一し、高さはアスペクト比に従う
+    const targetW = Math.min(referenceImg.width, capturedImg.width);
+    const referenceH = Math.round(referenceImg.height * (targetW / referenceImg.width));
+    const capturedH = Math.round(capturedImg.height * (targetW / capturedImg.width));
+    const maxH = Math.max(referenceH, capturedH);
     dimensions = {
-      totalW: referenceW + capturedW + gap,
+      totalW: targetW * 2 + gap,
       totalH: maxH,
-      referenceW,
-      referenceH: maxH,
-      capturedW,
-      capturedH: maxH,
+      referenceW: targetW,
+      referenceH,
+      capturedW: targetW,
+      capturedH,
     };
   } else {
     const maxW = Math.max(referenceImg.width, capturedImg.width);
@@ -71,8 +73,10 @@ export async function createComparisonImage(
   ctx.fillRect(0, 0, totalW, totalH);
 
   if (layout === 'horizontal') {
-    ctx.drawImage(referenceImg, 0, 0, referenceW, referenceH);
-    ctx.drawImage(capturedImg, referenceW + gap, 0, capturedW, capturedH);
+    const refY = Math.round((totalH - referenceH) / 2);
+    const capY = Math.round((totalH - capturedH) / 2);
+    ctx.drawImage(referenceImg, 0, refY, referenceW, referenceH);
+    ctx.drawImage(capturedImg, referenceW + gap, capY, capturedW, capturedH);
   } else {
     ctx.drawImage(referenceImg, 0, 0, referenceW, referenceH);
     ctx.drawImage(capturedImg, 0, referenceH + gap, capturedW, capturedH);

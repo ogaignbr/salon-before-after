@@ -193,7 +193,7 @@ function ImagePanel({ label, src, accent = false }: { label: string; src: string
         <img
           src={src}
           alt={label}
-          className="aspect-[3/4] w-full rounded-[10px] bg-slate-950/5 object-cover dark:bg-black/30"
+          className="aspect-[3/4] w-full rounded-[10px] bg-slate-950/5 object-contain dark:bg-black/30"
         />
       )}
     </div>
