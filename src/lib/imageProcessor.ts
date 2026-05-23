@@ -107,6 +107,35 @@ export async function shareOrDownloadImage(blob: Blob, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** 画像を3:4にセンタークロップし、指定幅にリサイズする */
+export async function cropTo3x4(blob: Blob, targetWidth = 1080): Promise<Blob> {
+  const url = await blobToDataURL(blob);
+  const img = await loadImage(url);
+
+  const targetRatio = 3 / 4;
+  const imgRatio = img.width / img.height;
+
+  let sx = 0, sy = 0, sw = img.width, sh = img.height;
+  if (imgRatio > targetRatio) {
+    sw = Math.round(img.height * targetRatio);
+    sx = Math.round((img.width - sw) / 2);
+  } else if (imgRatio < targetRatio) {
+    sh = Math.round(img.width / targetRatio);
+    sy = Math.round((img.height - sh) / 2);
+  }
+
+  const targetHeight = Math.round(targetWidth / targetRatio);
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext('2d')!;
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+
+  return new Promise((resolve) => {
+    canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.92);
+  });
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();

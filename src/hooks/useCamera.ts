@@ -21,6 +21,22 @@ export function useCamera() {
         },
         audio: false,
       });
+
+      // zoom を 1.0 に固定し標準倍率にする
+      const track = stream.getVideoTracks()[0];
+      try {
+        const caps = track.getCapabilities?.() as Record<string, unknown> | undefined;
+        const zoom = caps?.zoom as { min: number; max: number } | undefined;
+        if (zoom) {
+          const target = Math.max(zoom.min, Math.min(1.0, zoom.max));
+          await track.applyConstraints({
+            advanced: [{ zoom: target } as MediaTrackConstraintSet],
+          });
+        }
+      } catch {
+        // zoom 非対応の端末では無視
+      }
+
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;

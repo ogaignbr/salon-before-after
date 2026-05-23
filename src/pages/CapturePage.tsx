@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useCamera } from '../hooks/useCamera';
 import GhostOverlay from '../components/GhostOverlay';
 import CompositionGuides from '../components/CompositionGuides';
+import { cropTo3x4 } from '../lib/imageProcessor';
 
 export default function CapturePage() {
   const navigate = useNavigate();
@@ -34,6 +35,14 @@ export default function CapturePage() {
     if (!blob) return;
     triggerFlash();
     setReferenceImage(blob);
+    setStep('capture');
+  };
+
+  const handleReferenceSelect = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const cropped = await cropTo3x4(file);
+    setReferenceImage(cropped);
     setStep('capture');
   };
 
@@ -131,11 +140,22 @@ export default function CapturePage() {
 
         {isReferenceStep && (
           <p className="text-center text-xs text-white/60">
-            まず基準となる写真を撮影してください
+            基準となる写真を撮影、または過去の画像を選択してください
           </p>
         )}
 
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center gap-6">
+          {isReferenceStep && (
+            <label className="flex h-12 cursor-pointer items-center gap-1.5 rounded-full bg-white/15 px-4 text-xs font-medium text-white/80 backdrop-blur transition hover:bg-white/25 active:scale-[0.97]">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75A2.25 2.25 0 016 4.5h12a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0118 19.5H6a2.25 2.25 0 01-2.25-2.25V6.75z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 14.25l2.1-2.1a1.5 1.5 0 012.121 0l.558.559a1.5 1.5 0 002.121 0l.6-.6" />
+              </svg>
+              画像を選択
+              <input type="file" accept="image/*" className="hidden" onChange={handleReferenceSelect} />
+            </label>
+          )}
+
           <button
             onClick={isReferenceStep ? handleCaptureReference : handleCaptureAfter}
             disabled={!isReady}
@@ -143,6 +163,8 @@ export default function CapturePage() {
           >
             <div className="h-14 w-14 rounded-full bg-white transition active:bg-slate-200" />
           </button>
+
+          {isReferenceStep && <div className="w-[108px]" />}
         </div>
       </div>
     </div>
