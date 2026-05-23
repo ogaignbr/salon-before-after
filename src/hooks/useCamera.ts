@@ -26,10 +26,11 @@ export function useCamera() {
       // zoom を最小値に設定し、ネイティブ1xと同等の画角にする
       const track = stream.getVideoTracks()[0];
       try {
-        const caps = track.getCapabilities?.();
-        if (caps?.zoom) {
+        const caps = track.getCapabilities?.() as Record<string, unknown> | undefined;
+        const zoom = caps?.zoom as { min: number } | undefined;
+        if (zoom) {
           await track.applyConstraints({
-            advanced: [{ zoom: caps.zoom.min } as MediaTrackConstraintSet],
+            advanced: [{ zoom: zoom.min } as MediaTrackConstraintSet],
           });
         }
       } catch {
