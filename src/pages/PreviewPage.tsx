@@ -87,6 +87,15 @@ export default function PreviewPage() {
     );
   }
 
+  const handleSaveReference = async () => {
+    setIsExporting(true);
+    try {
+      await shareOrDownloadImage(referenceImage, `pitacame_ref_${dateStamp()}.jpg`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleSaveCaptured = async () => {
     setIsExporting(true);
     try {
@@ -137,13 +146,22 @@ export default function PreviewPage() {
         <div className="rounded-[16px] border border-[#A8DDE5]/30 bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_12px_32px_rgba(60,140,170,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45">
           <p className="text-xs font-semibold tracking-[0.08em] text-[#1B3A5C] dark:text-slate-300">保存・共有</p>
           <div className="mt-3 space-y-2">
-            <button
-              onClick={handleSaveCaptured}
-              disabled={isExporting}
-              className="sheen-wrap w-full rounded-[10px] border border-[#5BB5E7]/30 bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] py-3.5 font-bold text-white shadow-[0_8px_18px_rgba(70,160,200,0.24)] transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
-            >
-              撮影画像だけ保存
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={handleSaveReference}
+                disabled={isExporting}
+                className="rounded-[10px] border border-[#3DC4A8]/60 bg-white py-3 text-sm font-semibold text-[#3DC4A8] shadow-[0_10px_28px_rgba(60,140,170,0.10)] transition-all hover:bg-[#F0FBF8] active:scale-[0.99] disabled:opacity-50 dark:border-cyan-300/20 dark:bg-slate-900/45 dark:text-slate-100"
+              >
+                基準画像を保存
+              </button>
+              <button
+                onClick={handleSaveCaptured}
+                disabled={isExporting}
+                className="rounded-[10px] border border-[#3DC4A8]/60 bg-white py-3 text-sm font-semibold text-[#3DC4A8] shadow-[0_10px_28px_rgba(60,140,170,0.10)] transition-all hover:bg-[#F0FBF8] active:scale-[0.99] disabled:opacity-50 dark:border-cyan-300/20 dark:bg-slate-900/45 dark:text-slate-100"
+              >
+                撮影画像を保存
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => handleSaveComparison('horizontal')}
