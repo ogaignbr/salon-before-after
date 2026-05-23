@@ -10,6 +10,7 @@ import TermsPage from './pages/TermsPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import SubscribePage from './pages/SubscribePage';
+import ManualPage from './pages/ManualPage';
 import { AppFrame } from './components/AppFrame';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="/subscribe" element={<SubscribePage />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route path="/terms" element={<TermsPage />} />
+            <Route path="/manual" element={<ManualPage />} />
 
             <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
             <Route path="/capture" element={<AuthGuard><CapturePage /></AuthGuard>} />
