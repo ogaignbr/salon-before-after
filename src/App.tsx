@@ -1,10 +1,12 @@
 import { Component, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { SessionProvider } from './contexts/SessionContext';
 import AuthGuard from './components/AuthGuard';
 import HomePage from './pages/HomePage';
 import CapturePage from './pages/CapturePage';
-import PreviewPage from './pages/PreviewPage';
+import GalleryPage from './pages/GalleryPage';
+import ComparePage from './pages/ComparePage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsPage from './pages/TermsPage';
 import LoginPage from './pages/LoginPage';
@@ -59,18 +61,21 @@ export default function App() {
     <ErrorBoundary>
       <BrowserRouter basename={basename || undefined}>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/subscribe" element={<SubscribePage />} />
-            <Route path="/privacy" element={<PrivacyPolicyPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/manual" element={<ManualPage />} />
+          <SessionProvider>
+            <Routes>
+              <Route path="/" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/subscribe" element={<SubscribePage />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/manual" element={<ManualPage />} />
 
-            <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
-            <Route path="/capture" element={<AuthGuard><CapturePage /></AuthGuard>} />
-            <Route path="/preview" element={<AuthGuard><PreviewPage /></AuthGuard>} />
-          </Routes>
+              <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
+              <Route path="/capture" element={<AuthGuard><CapturePage /></AuthGuard>} />
+              <Route path="/gallery" element={<AuthGuard><GalleryPage /></AuthGuard>} />
+              <Route path="/compare" element={<AuthGuard><ComparePage /></AuthGuard>} />
+            </Routes>
+          </SessionProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

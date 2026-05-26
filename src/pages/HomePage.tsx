@@ -70,7 +70,7 @@ export default function HomePage() {
               className="mx-auto h-auto w-full max-w-[240px] rounded-[10px]"
             />
           </div>
-          <p className="mt-1 text-[14px] font-medium text-[#5B7689] dark:text-slate-400">好きな画像にぴたっと合わせて撮れるカメラ</p>
+          <p className="mt-1 text-[14px] font-medium text-[#5B7689] dark:text-slate-400">連続撮影して比較できるカメラ</p>
         </div>
 
         <div className="space-y-3 animate-slide-up" style={{ animationDelay: '0.08s' }}>
@@ -82,7 +82,7 @@ export default function HomePage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 9a2 2 0 012-2h1.3a2 2 0 001.6-.8l.42-.56A2 2 0 0111.12 5h1.76a2 2 0 011.8 1.12l.42.56a2 2 0 001.6.8H18a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2V9z" />
               <circle cx="12" cy="12.5" r="2.8" />
             </svg>
-            画像に合わせて撮る
+            撮影を開始する
           </button>
         </div>
 
@@ -109,7 +109,7 @@ export default function HomePage() {
         </div>
 
         <div className="mt-auto pt-8 text-center animate-fade-in" style={{ animationDelay: '0.25s' }}>
-          <p className="mb-3 text-xs font-medium tracking-[0.06em] text-[#5B7689] dark:text-slate-400">その場で撮って、その場で保存</p>
+          <p className="mb-3 text-xs font-medium tracking-[0.06em] text-[#5B7689] dark:text-slate-400">撮影して比較、その場で保存</p>
           <div className="mx-auto flex w-fit items-center gap-3 rounded-[16px] border border-[#C9E5E0] bg-white px-4 py-1.5 text-xs text-[#5B7689] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-400">
             <button onClick={() => navigate('/terms')} className="transition-colors hover:text-[#1B3A5C] dark:hover:text-slate-200">
               利用規約

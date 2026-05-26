@@ -9,77 +9,173 @@ export function blobToDataURL(blob: Blob): Promise<string> {
 
 export type ComparisonLayout = 'horizontal' | 'vertical';
 
+const RATIO_VALUES: Record<string, number> = {
+  '3:4': 3 / 4,
+  '9:16': 9 / 16,
+  '4:3': 4 / 3,
+};
+
+export interface ComparisonOptions {
+  layout: ComparisonLayout;
+  ratio: string;
+  borderEnabled: boolean;
+  borderWidth: number;
+  borderColor: string;
+  dividerWidth: number;
+  borderRadius: number;
+  firstScale: number;
+  firstOffsetX: number;
+  firstOffsetY: number;
+  secondScale: number;
+  secondOffsetX: number;
+  secondOffsetY: number;
+  drawGrid?: boolean;
+}
+
 export async function createComparisonImage(
-  referenceBlob: Blob,
-  capturedBlob: Blob,
-  layout: ComparisonLayout = 'horizontal',
+  firstBlob: Blob,
+  secondBlob: Blob,
+  options: ComparisonOptions,
 ): Promise<Blob> {
-  const [referenceUrl, capturedUrl] = await Promise.all([
-    blobToDataURL(referenceBlob),
-    blobToDataURL(capturedBlob),
+  const [firstUrl, secondUrl] = await Promise.all([
+    blobToDataURL(firstBlob),
+    blobToDataURL(secondBlob),
+  ]);
+  const [firstImg, secondImg] = await Promise.all([
+    loadImage(firstUrl),
+    loadImage(secondUrl),
   ]);
 
-  const [referenceImg, capturedImg] = await Promise.all([
-    loadImage(referenceUrl),
-    loadImage(capturedUrl),
-  ]);
+  const {
+    layout, ratio, borderEnabled, borderWidth, borderColor,
+    dividerWidth, borderRadius,
+    firstScale, firstOffsetX, firstOffsetY,
+    secondScale, secondOffsetX, secondOffsetY,
+  } = options;
 
-  const gap = 0;
-  let dimensions: {
-    totalW: number;
-    totalH: number;
-    referenceW: number;
-    referenceH: number;
-    capturedW: number;
-    capturedH: number;
-  };
+  const border = borderEnabled ? borderWidth : 0;
+  const divider = borderEnabled ? dividerWidth : 0;
+  const aspectRatio = RATIO_VALUES[ratio] ?? 3 / 4;
 
-  if (layout === 'horizontal') {
-    // 両方を同じ幅に統一し、高さはアスペクト比に従う
-    const targetW = Math.min(referenceImg.width, capturedImg.width);
-    const referenceH = Math.round(referenceImg.height * (targetW / referenceImg.width));
-    const capturedH = Math.round(capturedImg.height * (targetW / capturedImg.width));
-    const maxH = Math.max(referenceH, capturedH);
-    dimensions = {
-      totalW: targetW * 2 + gap,
-      totalH: maxH,
-      referenceW: targetW,
-      referenceH,
-      capturedW: targetW,
-      capturedH,
-    };
+  // Output size: base on 1080px width
+  const baseSize = 1080;
+  let totalW: number;
+  let totalH: number;
+
+  if (aspectRatio >= 1) {
+    // Landscape
+    totalW = baseSize;
+    totalH = Math.round(baseSize / aspectRatio);
   } else {
-    const maxW = Math.max(referenceImg.width, capturedImg.width);
-    const referenceH = referenceImg.height * (maxW / referenceImg.width);
-    const capturedH = capturedImg.height * (maxW / capturedImg.width);
-    dimensions = {
-      totalW: maxW,
-      totalH: referenceH + capturedH + gap,
-      referenceW: maxW,
-      referenceH,
-      capturedW: maxW,
-      capturedH,
-    };
+    // Portrait
+    totalH = Math.round(baseSize / aspectRatio);
+    totalW = baseSize;
   }
-
-  const { totalW, totalH, referenceW, referenceH, capturedW, capturedH } = dimensions;
 
   const canvas = document.createElement('canvas');
   canvas.width = totalW;
   canvas.height = totalH;
   const ctx = canvas.getContext('2d')!;
 
-  ctx.fillStyle = '#ffffff';
+  // Background (border color or white)
+  ctx.fillStyle = borderEnabled ? borderColor : '#ffffff';
   ctx.fillRect(0, 0, totalW, totalH);
 
+  // Clip for border radius
+  if (borderRadius > 0 && borderEnabled) {
+    ctx.beginPath();
+    const r = borderRadius * 2; // Scale radius for output
+    ctx.roundRect(0, 0, totalW, totalH, r);
+    ctx.clip();
+    ctx.fillStyle = borderColor;
+    ctx.fillRect(0, 0, totalW, totalH);
+  }
+
+  // Calculate cell areas
+  let firstArea: { x: number; y: number; w: number; h: number };
+  let secondArea: { x: number; y: number; w: number; h: number };
+
   if (layout === 'horizontal') {
-    const refY = Math.round((totalH - referenceH) / 2);
-    const capY = Math.round((totalH - capturedH) / 2);
-    ctx.drawImage(referenceImg, 0, refY, referenceW, referenceH);
-    ctx.drawImage(capturedImg, referenceW + gap, capY, capturedW, capturedH);
+    const cellW = Math.floor((totalW - border * 2 - divider) / 2);
+    const cellH = totalH - border * 2;
+    firstArea = { x: border, y: border, w: cellW, h: cellH };
+    secondArea = { x: border + cellW + divider, y: border, w: cellW, h: cellH };
   } else {
-    ctx.drawImage(referenceImg, 0, 0, referenceW, referenceH);
-    ctx.drawImage(capturedImg, 0, referenceH + gap, capturedW, capturedH);
+    const cellW = totalW - border * 2;
+    const cellH = Math.floor((totalH - border * 2 - divider) / 2);
+    firstArea = { x: border, y: border, w: cellW, h: cellH };
+    secondArea = { x: border, y: border + cellH + divider, w: cellW, h: cellH };
+  }
+
+  // Draw image into cell with scale and offset
+  const drawImageInCell = (
+    img: HTMLImageElement,
+    area: { x: number; y: number; w: number; h: number },
+    scale: number,
+    offsetX: number,
+    offsetY: number,
+  ) => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(area.x, area.y, area.w, area.h);
+    ctx.clip();
+
+    // Contain fit
+    const imgAspect = img.width / img.height;
+    const cellAspect = area.w / area.h;
+    let drawW: number, drawH: number;
+    if (imgAspect > cellAspect) {
+      drawW = area.w;
+      drawH = area.w / imgAspect;
+    } else {
+      drawH = area.h;
+      drawW = area.h * imgAspect;
+    }
+
+    // Scale relative to output pixel size
+    const scaleRatio = totalW / (window.innerWidth || 420);
+    const scaledOffsetX = offsetX * scaleRatio;
+    const scaledOffsetY = offsetY * scaleRatio;
+
+    const cx = area.x + area.w / 2 + scaledOffsetX;
+    const cy = area.y + area.h / 2 + scaledOffsetY;
+
+    drawW *= scale;
+    drawH *= scale;
+
+    ctx.drawImage(img, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+    ctx.restore();
+  };
+
+  drawImageInCell(firstImg, firstArea, firstScale, firstOffsetX, firstOffsetY);
+  drawImageInCell(secondImg, secondArea, secondScale, secondOffsetX, secondOffsetY);
+
+  // Draw grid overlay on each cell
+  if (options.drawGrid) {
+    const drawGridInArea = (area: { x: number; y: number; w: number; h: number }) => {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(area.x, area.y, area.w, area.h);
+      ctx.clip();
+      const gridSize = 40; // px in output
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 1;
+      for (let x = area.x + gridSize; x < area.x + area.w; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, area.y);
+        ctx.lineTo(x, area.y + area.h);
+        ctx.stroke();
+      }
+      for (let y = area.y + gridSize; y < area.y + area.h; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(area.x, y);
+        ctx.lineTo(area.x + area.w, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    };
+    drawGridInArea(firstArea);
+    drawGridInArea(secondArea);
   }
 
   return new Promise((resolve) => {
@@ -107,7 +203,6 @@ export async function shareOrDownloadImage(blob: Blob, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** 画像を3:4にセンタークロップし、指定幅にリサイズする */
 export async function cropTo3x4(blob: Blob, targetWidth = 1080): Promise<Blob> {
   const url = await blobToDataURL(blob);
   const img = await loadImage(url);

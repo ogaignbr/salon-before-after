@@ -107,7 +107,7 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
     const ctx = canvas.getContext('2d')!;
     const detections = await detectFaces(canvas);
     if (detections.length === 0) {
-      alert('No faces detected. Please apply mosaic manually.');
+      alert('顔が検出されませんでした。手動でモザイクを適用してください。');
       return;
     }
     for (const det of detections) {
@@ -134,9 +134,9 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
     <div className="flex flex-col h-full bg-slate-900">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-slate-800 text-white border-b border-white/10">
-        <button onClick={onCancel} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Cancel</button>
-        <span className="font-semibold text-sm">Mosaic Editor</span>
-        <button onClick={handleSave} className="text-sm text-cyan-400 font-semibold hover:text-cyan-300 transition-colors">Apply</button>
+        <button onClick={onCancel} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">キャンセル</button>
+        <span className="font-semibold text-sm">モザイク加工</span>
+        <button onClick={handleSave} className="text-sm text-cyan-400 font-semibold hover:text-cyan-300 transition-colors">適用</button>
       </div>
 
       {/* Canvas area */}
@@ -162,19 +162,19 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
             disabled={isLoading}
             className="flex-1 py-2.5 rounded-xl bg-cyan-600 text-white text-sm font-semibold disabled:opacity-50 hover:bg-cyan-700 active:scale-[0.98] transition-all"
           >
-            {isLoading ? 'Loading...' : 'Auto Detect Faces'}
+            {isLoading ? '読み込み中...' : '顔を自動検出'}
           </button>
           <button
             onClick={handleUndo}
             disabled={history.length <= 1}
             className="px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-medium disabled:opacity-30 hover:bg-white/20 active:scale-[0.98] transition-all"
           >
-            Undo
+            戻す
           </button>
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-slate-400 font-medium">Brush Size: {brushSize}</label>
+          <label className="text-xs text-slate-400 font-medium">ブラシサイズ: {brushSize}</label>
           <input
             type="range"
             min="10"
@@ -186,7 +186,7 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-slate-400 font-medium">Mosaic Strength: {blockSize}</label>
+          <label className="text-xs text-slate-400 font-medium">モザイク強度: {blockSize}</label>
           <input
             type="range"
             min="5"

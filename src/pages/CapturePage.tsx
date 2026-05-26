@@ -1,282 +1,335 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCamera } from '../hooks/useCamera';
-import GhostOverlay from '../components/GhostOverlay';
-import CompositionGuides from '../components/CompositionGuides';
-import { cropTo3x4 } from '../lib/imageProcessor';
-import { saveReferenceImage, loadReferenceImage, clearReferenceImage } from '../lib/db';
-
-type Step = 'reference' | 'confirm' | 'capture';
+import { useSession } from '../contexts/SessionContext';
+import { blobToDataURL } from '../lib/imageProcessor';
 
 export default function CapturePage() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const state = location.state as { referenceImage?: Blob } | null;
   const { videoRef, isReady, error, start, stop, capture, switchCamera, facingMode } = useCamera();
-  const [step, setStep] = useState<Step>(() =>
-    state?.referenceImage ? 'capture' : 'reference',
-  );
-  const [referenceImage, setReferenceImage] = useState<Blob | null>(() => state?.referenceImage ?? null);
-  const [ghostOpacity, setGhostOpacity] = useState(0.35);
-  const [showGrid, setShowGrid] = useState(true);
-  const [showThirds, setShowThirds] = useState(false);
-  const [showDiagonal, setShowDiagonal] = useState(false);
+  const { images, addImage } = useSession();
+
+  // Left side: reference image
+  const [refSrc, setRefSrc] = useState<string | null>(null);
+  const [refBlob, setRefBlob] = useState<Blob | null>(null);
+  const [refScale, setRefScale] = useState(1);
+  const [refOffset, setRefOffset] = useState({ x: 0, y: 0 });
+
+  // Right side: captured image or live camera
+  const [capturedSrc, setCapturedSrc] = useState<string | null>(null);
+  const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
+
   const [flash, setFlash] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [loadingRef, setLoadingRef] = useState(!state?.referenceImage);
+  const [showGrid, setShowGrid] = useState(true);
 
-  // On mount, check for a previously saved reference image
-  useEffect(() => {
-    if (state?.referenceImage) return;
-    loadReferenceImage().then((saved) => {
-      if (saved) {
-        setReferenceImage(saved);
-        setStep('confirm');
-      }
-      setLoadingRef(false);
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Drag state for reference image
+  const dragState = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+  // Pinch state
+  const pinchState = useRef<{ initialDist: number; initialScale: number } | null>(null);
 
   useEffect(() => {
-    if (step === 'confirm') return; // no camera needed for confirm step
     start();
     return () => stop();
-  }, [step, start, stop]);
+  }, [start, stop]);
 
-  const triggerFlash = () => {
-    setFlash(true);
-    window.setTimeout(() => setFlash(false), 150);
+  // Select reference image from device
+  const handleSelectRef = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setRefBlob(file);
+    const url = await blobToDataURL(file);
+    setRefSrc(url);
+    setRefScale(1);
+    setRefOffset({ x: 0, y: 0 });
   };
 
-  const handleCaptureReference = () => {
+  // Capture right side
+  const handleCapture = () => {
     const blob = capture();
     if (!blob) return;
-    triggerFlash();
-    setReferenceImage(blob);
-    setStep('confirm');
+    setFlash(true);
+    window.setTimeout(() => setFlash(false), 150);
+    setCapturedBlob(blob);
+    addImage(blob);
+    blobToDataURL(blob).then(setCapturedSrc);
   };
 
-  const handleReferenceSelect = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const cropped = await cropTo3x4(file);
-    setReferenceImage(cropped);
-    setStep('confirm');
-  };
-
-  const handleSaveAndProceed = async () => {
-    if (!referenceImage || saving) return;
-    setSaving(true);
-    await saveReferenceImage(referenceImage);
-    setSaving(false);
-    setStep('capture');
-  };
-
-  const handleRetakeReference = async () => {
-    await clearReferenceImage();
-    setReferenceImage(null);
-    setStep('reference');
-  };
-
-  const handleCaptureAfter = () => {
-    if (!referenceImage) return;
-    const capturedImage = capture();
-    if (!capturedImage) return;
-    triggerFlash();
-    stop();
-    clearReferenceImage(); // clear saved reference after successful capture
-    navigate('/preview', {
-      state: { referenceImage, capturedImage },
-    });
+  // Reshoot: go back to camera on right side
+  const handleReshoot = () => {
+    setCapturedSrc(null);
+    setCapturedBlob(null);
   };
 
   const handleBack = () => {
     stop();
-    if (step === 'capture') {
-      setStep('confirm');
-    } else if (step === 'confirm') {
-      clearReferenceImage();
-      setReferenceImage(null);
-      setStep('reference');
-    } else {
-      navigate('/home');
-    }
+    navigate('/home');
   };
 
-  const isReferenceStep = step === 'reference';
-  const isConfirmStep = step === 'confirm';
-  const title = isReferenceStep
-    ? '基準画像を撮影'
-    : isConfirmStep
-      ? '基準画像の確認'
-      : '基準画像に合わせて撮影';
-  const backLabel = isReferenceStep ? 'ホーム' : isConfirmStep ? '撮り直す' : '基準確認';
+  // --- Reference image drag ---
+  const handleRefPointerDown = useCallback((e: React.PointerEvent) => {
+    dragState.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: refOffset.x,
+      origY: refOffset.y,
+    };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [refOffset]);
 
-  const referenceUrl = useMemo(
-    () => (referenceImage ? URL.createObjectURL(referenceImage) : null),
-    [referenceImage],
-  );
-  useEffect(() => {
-    return () => { if (referenceUrl) URL.revokeObjectURL(referenceUrl); };
-  }, [referenceUrl]);
+  const handleRefPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragState.current) return;
+    const dx = e.clientX - dragState.current.startX;
+    const dy = e.clientY - dragState.current.startY;
+    setRefOffset({
+      x: dragState.current.origX + dx,
+      y: dragState.current.origY + dy,
+    });
+  }, []);
 
-  if (loadingRef) {
-    return <div className="flex h-dvh items-center justify-center bg-black text-white text-sm">読み込み中...</div>;
-  }
+  const handleRefPointerUp = useCallback(() => {
+    dragState.current = null;
+  }, []);
 
-  // Confirm step: show saved reference image for review
-  if (isConfirmStep && referenceUrl) {
-    return (
-      <div className="relative flex h-dvh flex-col overflow-hidden bg-black">
-        <div className="relative z-20 flex items-center justify-between border-b border-white/10 bg-slate-900/80 px-4 py-2.5 text-white backdrop-blur-md">
-          <button onClick={handleBack} className="flex items-center gap-1 text-sm font-medium">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            {backLabel}
-          </button>
-          <span className="text-sm font-semibold tracking-wide">{title}</span>
-          <div className="w-8" />
-        </div>
+  // --- Reference image pinch-to-zoom ---
+  const handleRefTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchState.current = {
+        initialDist: Math.hypot(dx, dy),
+        initialScale: refScale,
+      };
+    }
+  }, [refScale]);
 
-        <div className="relative flex-1 flex items-center justify-center bg-black">
-          <div className="relative w-full aspect-[3/4] max-h-full overflow-hidden">
-            <img src={referenceUrl} alt="基準画像" className="absolute inset-0 h-full w-full object-cover" />
-          </div>
-        </div>
+  const handleRefTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchState.current) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const scale = pinchState.current.initialScale * (dist / pinchState.current.initialDist);
+      setRefScale(Math.max(0.3, Math.min(5, scale)));
+    }
+  }, []);
 
-        <div className="relative z-20 space-y-3 bg-gradient-to-t from-black/95 to-black/70 px-4 py-5">
-          <p className="text-center text-sm font-medium text-white">
-            この画像を基準画像として保存しますか？
-          </p>
-          <p className="text-center text-xs text-white/50">
-            保存すると、アプリを閉じても基準画像が残ります
-          </p>
-          <div className="flex items-center justify-center gap-3 pt-1">
-            <button
-              onClick={handleRetakeReference}
-              className="flex h-12 items-center gap-1.5 rounded-full bg-white/15 px-5 text-sm font-medium text-white/80 backdrop-blur transition hover:bg-white/25 active:scale-[0.97]"
-            >
-              撮り直す
-            </button>
-            <button
-              onClick={handleSaveAndProceed}
-              disabled={saving}
-              className="flex h-12 items-center gap-1.5 rounded-full bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] px-6 text-sm font-bold text-white shadow-lg transition hover:brightness-105 active:scale-[0.97] disabled:opacity-50"
-            >
-              {saving ? '保存中...' : '保存して撮影へ'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleRefTouchEnd = useCallback(() => {
+    pinchState.current = null;
+  }, []);
+
+  // Scale buttons for reference
+  const handleRefZoom = (delta: number) => {
+    setRefScale((prev) => Math.max(0.3, Math.min(5, prev + delta)));
+  };
+
+  const handleRefReset = () => {
+    setRefScale(1);
+    setRefOffset({ x: 0, y: 0 });
+  };
 
   return (
-    <div className="relative flex h-dvh flex-col overflow-hidden bg-black">
+    <div className="relative flex flex-col overflow-hidden bg-black" style={{ height: '100dvh' }}>
       {flash && <div className="absolute inset-0 z-50 bg-white" />}
 
-      <div className="relative z-20 flex items-center justify-between border-b border-white/10 bg-slate-900/80 px-4 py-2.5 text-white backdrop-blur-md">
-        <button onClick={handleBack} className="flex items-center gap-1 text-sm font-medium">
+      {/* Header */}
+      <div className="relative z-20 flex items-center justify-between border-b border-white/10 bg-slate-900/80 px-3 py-2 text-white backdrop-blur-md" style={{ flexShrink: 0 }}>
+        <button onClick={handleBack} className="flex items-center gap-1 text-xs font-medium">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          {backLabel}
+          ホーム
         </button>
-        <span className="text-sm font-semibold tracking-wide">{title}</span>
-        <button onClick={switchCamera} className="rounded-lg p-1.5 transition-colors hover:bg-white/10">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
-      </div>
-
-      <div className="relative flex-1 flex items-center justify-center bg-black">
-        <div className="relative w-full aspect-[3/4] max-h-full overflow-hidden">
-          <video
-            ref={videoRef}
-            className={`absolute inset-0 h-full w-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
-            autoPlay
-            playsInline
-            muted
-          />
-
-          {!isReferenceStep && referenceImage && (
-            <GhostOverlay imageBlob={referenceImage} opacity={ghostOpacity} />
-          )}
-          <CompositionGuides grid={showGrid} thirds={showThirds} diagonal={showDiagonal} />
-
-          {error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-4 text-center text-white">
-              <p className="font-medium">{error}</p>
-            </div>
-          )}
+        <span className="text-xs font-semibold tracking-wide">撮影</span>
+        <div className="flex items-center gap-1">
+          <button onClick={switchCamera} className="rounded-lg p-1.5 transition-colors hover:bg-white/10">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
         </div>
       </div>
 
-      <div className="relative z-20 space-y-3 bg-gradient-to-t from-black/95 to-black/70 px-4 py-4">
-        {!isReferenceStep && (
-          <div className="flex items-center gap-3 px-2">
-            <span className="whitespace-nowrap text-xs font-medium text-white/70">ゴースト</span>
-            <input
-              type="range"
-              min="0"
-              max="85"
-              value={ghostOpacity * 100}
-              onChange={(e) => setGhostOpacity(Number(e.target.value) / 100)}
-              className="flex-1 accent-[#3DC4A8]"
-            />
+      {/* Split View */}
+      <div className="relative flex flex-1 items-center justify-center bg-black px-1 py-1">
+        <div
+          className="flex w-full overflow-hidden rounded-lg border border-white/10"
+          style={{
+            maxWidth: 'min(100vw - 8px, 440px)',
+            maxHeight: 'calc(100dvh - 140px)',
+            aspectRatio: '3 / 4',
+          }}
+        >
+          {/* Left: Reference Image */}
+          <div
+            className="relative flex-1 overflow-hidden border-r border-white/20 bg-slate-900"
+            onTouchStart={handleRefTouchStart}
+            onTouchMove={handleRefTouchMove}
+            onTouchEnd={handleRefTouchEnd}
+          >
+            {refSrc ? (
+              <div
+                className="absolute inset-0 touch-none select-none"
+                onPointerDown={handleRefPointerDown}
+                onPointerMove={handleRefPointerMove}
+                onPointerUp={handleRefPointerUp}
+                onPointerCancel={handleRefPointerUp}
+              >
+                <img
+                  src={refSrc}
+                  alt=""
+                  draggable={false}
+                  className="absolute inset-0 h-full w-full object-contain pointer-events-none"
+                  style={{
+                    transform: `scale(${refScale}) translate(${refOffset.x / refScale}px, ${refOffset.y / refScale}px)`,
+                    transformOrigin: 'center center',
+                  }}
+                />
+                {/* Grid on left side */}
+                {showGrid && (
+                  <div
+                    className="absolute inset-0 pointer-events-none z-10"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)',
+                      backgroundSize: '20px 20px',
+                    }}
+                  />
+                )}
+              </div>
+            ) : (
+              <label className="flex h-full cursor-pointer flex-col items-center justify-center gap-2 text-white/50 transition hover:text-white/70">
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+                </svg>
+                <span className="text-[10px] font-medium">タップして画像を選択</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleSelectRef} />
+              </label>
+            )}
+
+            {/* Re-select overlay button */}
+            {refSrc && (
+              <label className="absolute bottom-1 left-1 z-10 flex cursor-pointer items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[9px] font-medium text-white/80 backdrop-blur transition hover:bg-black/80">
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909" />
+                </svg>
+                変更
+                <input type="file" accept="image/*" className="hidden" onChange={handleSelectRef} />
+              </label>
+            )}
+          </div>
+
+          {/* Right: Camera / Captured */}
+          <div className="relative flex-1 overflow-hidden bg-black">
+            {capturedSrc ? (
+              <>
+                <img
+                  src={capturedSrc}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-contain"
+                />
+                <button
+                  onClick={handleReshoot}
+                  className="absolute bottom-1 right-1 z-10 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[9px] font-medium text-white/80 backdrop-blur transition hover:bg-black/80"
+                >
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+                  </svg>
+                  撮り直し
+                </button>
+              </>
+            ) : (
+              <>
+                <video
+                  ref={videoRef}
+                  className="absolute inset-0 h-full w-full object-contain"
+                  style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : undefined, background: '#000' }}
+                  autoPlay
+                  playsInline
+                  muted
+                />
+                {/* Grid on camera side */}
+                {showGrid && (
+                  <div
+                    className="absolute inset-0 pointer-events-none z-10"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)',
+                      backgroundSize: '20px 20px',
+                    }}
+                  />
+                )}
+                {error && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-2 text-center text-white">
+                    <p className="text-xs font-medium">{error}</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="relative z-20 bg-gradient-to-t from-black/95 to-black/70 px-3 py-2.5" style={{ flexShrink: 0 }}>
+        {/* Ref image zoom controls */}
+        {refSrc && (
+          <div className="mb-2 flex items-center justify-center gap-2">
+            <span className="text-[9px] text-white/40">左画像</span>
+            <button onClick={() => handleRefZoom(-0.1)} className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white/70">-</button>
+            <span className="text-[9px] text-white/50 w-8 text-center">{Math.round(refScale * 100)}%</span>
+            <button onClick={() => handleRefZoom(0.1)} className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white/70">+</button>
+            <button onClick={handleRefReset} className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/50">リセット</button>
           </div>
         )}
 
-        <div className="flex justify-center gap-2">
-          <GuideToggle label="グリッド" active={showGrid} onClick={() => setShowGrid((v) => !v)} />
-          <GuideToggle label="三分割" active={showThirds} onClick={() => setShowThirds((v) => !v)} />
-          <GuideToggle label="斜め線" active={showDiagonal} onClick={() => setShowDiagonal((v) => !v)} />
-        </div>
-
-        {isReferenceStep && (
-          <p className="text-center text-xs text-white/60">
-            基準となる写真を撮影、または過去の画像を選択してください
-          </p>
-        )}
-
-        <div className="flex items-center justify-center gap-6">
-          {isReferenceStep && (
-            <label className="flex h-12 cursor-pointer items-center gap-1.5 rounded-full bg-white/15 px-4 text-xs font-medium text-white/80 backdrop-blur transition hover:bg-white/25 active:scale-[0.97]">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75A2.25 2.25 0 016 4.5h12a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0118 19.5H6a2.25 2.25 0 01-2.25-2.25V6.75z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 14.25l2.1-2.1a1.5 1.5 0 012.121 0l.558.559a1.5 1.5 0 002.121 0l.6-.6" />
-              </svg>
-              画像を選択
-              <input type="file" accept="image/*" className="hidden" onChange={handleReferenceSelect} />
-            </label>
-          )}
-
+        {/* Main buttons */}
+        <div className="flex items-center justify-between">
+          {/* Grid toggle */}
           <button
-            onClick={isReferenceStep ? handleCaptureReference : handleCaptureAfter}
-            disabled={!isReady}
-            className="flex h-18 w-18 items-center justify-center rounded-full border-[3px] border-white/60 shadow-lg disabled:opacity-30"
+            onClick={() => setShowGrid((v) => !v)}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+              showGrid ? 'bg-[#3DC4A8]/70 text-white' : 'bg-white/10 text-white/45'
+            }`}
           >
-            <div className="h-14 w-14 rounded-full bg-white transition active:bg-slate-200" />
+            グリッド
           </button>
 
-          {isReferenceStep && <div className="w-[108px]" />}
+          {/* Shutter */}
+          <button
+            onClick={handleCapture}
+            disabled={!isReady || !!capturedSrc}
+            className="flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-white/60 shadow-lg disabled:opacity-30"
+          >
+            <div className="h-12 w-12 rounded-full bg-white transition active:bg-slate-200" />
+          </button>
+
+          {/* Compare / Gallery */}
+          {refBlob && capturedBlob ? (
+            <button
+              onClick={() => {
+                stop();
+                navigate('/compare', { state: { firstBlob: refBlob, secondBlob: capturedBlob } });
+              }}
+              className="rounded-full bg-[#3DC4A8]/80 px-3 py-1.5 text-xs font-bold text-white backdrop-blur transition hover:bg-[#3DC4A8] active:scale-[0.97]"
+            >
+              比較保存
+            </button>
+          ) : (
+            <button
+              onClick={() => { stop(); navigate('/gallery'); }}
+              disabled={images.length === 0}
+              className="relative rounded-full bg-white/15 px-3 py-1.5 text-xs font-medium text-white/80 backdrop-blur transition hover:bg-white/25 disabled:opacity-30"
+            >
+              一覧
+              {images.length > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#3DC4A8] text-[9px] font-bold text-white">
+                  {images.length}
+                </span>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
-  );
-}
-
-function GuideToggle({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
-        active ? 'bg-[#3DC4A8]/70 text-white' : 'bg-white/10 text-white/45'
-      }`}
-    >
-      {label}
-    </button>
   );
 }
