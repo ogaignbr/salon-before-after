@@ -1,5 +1,4 @@
 import Dexie, { type Table } from 'dexie';
-import type { Session } from '../types';
 
 interface SavedReference {
   id?: number;
@@ -8,7 +7,6 @@ interface SavedReference {
 }
 
 class AppDatabase extends Dexie {
-  sessions!: Table<Session, number>;
   savedReferences!: Table<SavedReference, number>;
 
   constructor() {
