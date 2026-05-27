@@ -1,7 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { blobToDataURL } from '../lib/imageProcessor';
-import { applyMosaicToRegion, applyMosaicCircle } from '../lib/mosaic';
-import { useFaceDetection } from '../hooks/useFaceDetection';
+import { applyMosaicCircle } from '../lib/mosaic';
 
 interface Props {
   imageBlob: Blob;
@@ -16,7 +15,6 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
   const [isDrawing, setIsDrawing] = useState(false);
   const [history, setHistory] = useState<ImageData[]>([]);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
-  const { detectFaces, isLoading } = useFaceDetection();
 
   useEffect(() => {
     const loadImage = async () => {
@@ -101,27 +99,6 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
     setHistory(newHistory);
   };
 
-  const handleAutoDetect = useCallback(async () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d')!;
-    const detections = await detectFaces(canvas);
-    if (detections.length === 0) {
-      alert('顔が検出されませんでした。手動でモザイクを適用してください。');
-      return;
-    }
-    for (const det of detections) {
-      const { x, y, width, height } = det.box;
-      const margin = Math.round(width * 0.15);
-      const mx = Math.max(0, Math.round(x - margin));
-      const my = Math.max(0, Math.round(y - margin));
-      const mw = Math.min(canvas.width - mx, Math.round(width + margin * 2));
-      const mh = Math.min(canvas.height - my, Math.round(height + margin * 2));
-      applyMosaicToRegion(ctx, mx, my, mw, mh, blockSize);
-    }
-    setHistory((prev) => [...prev, ctx.getImageData(0, 0, canvas.width, canvas.height)]);
-  }, [detectFaces, blockSize]);
-
   const handleSave = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -158,16 +135,9 @@ export default function MosaicCanvas({ imageBlob, onSave, onCancel }: Props) {
       <div className="bg-slate-800 backdrop-blur px-4 py-3 space-y-3 rounded-t-2xl border-t border-white/10">
         <div className="flex gap-2">
           <button
-            onClick={handleAutoDetect}
-            disabled={isLoading}
-            className="flex-1 py-2.5 rounded-xl bg-cyan-600 text-white text-sm font-semibold disabled:opacity-50 hover:bg-cyan-700 active:scale-[0.98] transition-all"
-          >
-            {isLoading ? '読み込み中...' : '顔を自動検出'}
-          </button>
-          <button
             onClick={handleUndo}
             disabled={history.length <= 1}
-            className="px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-medium disabled:opacity-30 hover:bg-white/20 active:scale-[0.98] transition-all"
+            className="flex-1 py-2.5 rounded-xl bg-white/10 text-white text-sm font-medium disabled:opacity-30 hover:bg-white/20 active:scale-[0.98] transition-all"
           >
             戻す
           </button>

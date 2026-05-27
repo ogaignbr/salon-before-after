@@ -24,6 +24,12 @@ const RATIO_CSS: Record<CompareFrameRatio, string> = {
   '4:3': '4 / 3',
 };
 
+const RATIO_VALUES: Record<string, number> = {
+  '3:4': 3 / 4,
+  '9:16': 9 / 16,
+  '4:3': 4 / 3,
+};
+
 const PRESET_COLORS = ['#ffffff', '#000000', '#3DC4A8', '#5BB5E7', '#E5486D', '#F59E0B'];
 
 function dateStamp() {
@@ -264,8 +270,11 @@ export default function ComparePage() {
           className="relative overflow-hidden"
           style={{
             aspectRatio: RATIO_CSS[settings.ratio],
-            height: '100%',
+            maxHeight: '100%',
             maxWidth: '100%',
+            /* For portrait ratios height is the constraint; for landscape width is */
+            width: (RATIO_VALUES[settings.ratio] ?? 0.75) >= 1 ? '100%' : 'auto',
+            height: (RATIO_VALUES[settings.ratio] ?? 0.75) < 1 ? '100%' : 'auto',
             display: 'flex',
             flexDirection: isHorizontal ? 'row' : 'column',
             border: settings.borderEnabled ? `${settings.borderWidth}px solid ${settings.borderColor}` : 'none',
@@ -292,8 +301,8 @@ export default function ComparePage() {
                 draggable={false}
                 className="absolute inset-0 h-full w-full touch-none select-none"
                 style={{
-                  objectFit: 'cover',
-                  transform: `scale(${firstScale}) translate(${firstOffset.x}px, ${firstOffset.y}px)`,
+                  objectFit: 'contain',
+                  transform: `scale(${firstScale}) translate(${firstOffset.x / firstScale}px, ${firstOffset.y / firstScale}px)`,
                 }}
               />
             )}
@@ -315,8 +324,8 @@ export default function ComparePage() {
                 draggable={false}
                 className="absolute inset-0 h-full w-full touch-none select-none"
                 style={{
-                  objectFit: 'cover',
-                  transform: `scale(${secondScale}) translate(${secondOffset.x}px, ${secondOffset.y}px)`,
+                  objectFit: 'contain',
+                  transform: `scale(${secondScale}) translate(${secondOffset.x / secondScale}px, ${secondOffset.y / secondScale}px)`,
                 }}
               />
             )}
