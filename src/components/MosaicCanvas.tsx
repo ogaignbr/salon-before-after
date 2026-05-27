@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { blobToDataURL } from '../lib/imageProcessor';
 import { applyMosaicCircle } from '../lib/mosaic';
 
