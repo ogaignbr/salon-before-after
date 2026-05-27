@@ -193,23 +193,28 @@ export default function CapturePage() {
           >
             {refSrc ? (
               <div
-                className="absolute inset-0 touch-none select-none"
+                className="absolute inset-0 touch-none select-none overflow-hidden"
                 onPointerDown={(e) => handlePointerDown('left', e)}
                 onPointerMove={(e) => handlePointerMove('left', e)}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
               >
-                <img
-                  src={refSrc}
-                  alt=""
-                  draggable={false}
-                  className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+                <div
+                  className="absolute"
                   style={{
-                    objectPosition: `calc(50% + ${refOffset.x}px) calc(50% + ${refOffset.y}px)`,
-                    transform: refScale !== 1 ? `scale(${refScale})` : undefined,
-                    transformOrigin: 'center center',
+                    width: `${100 * refScale}%`,
+                    height: `${100 * refScale}%`,
+                    left: `calc(${(1 - refScale) * 50}% + ${refOffset.x}px)`,
+                    top: `calc(${(1 - refScale) * 50}% + ${refOffset.y}px)`,
                   }}
-                />
+                >
+                  <img
+                    src={refSrc}
+                    alt=""
+                    draggable={false}
+                    className="h-full w-full object-cover pointer-events-none"
+                  />
+                </div>
                 {showGrid && (
                   <div
                     className="absolute inset-0 pointer-events-none z-10"
@@ -252,23 +257,28 @@ export default function CapturePage() {
             {capturedSrc ? (
               <>
                 <div
-                  className="absolute inset-0 touch-none select-none"
+                  className="absolute inset-0 touch-none select-none overflow-hidden"
                   onPointerDown={(e) => handlePointerDown('right', e)}
                   onPointerMove={(e) => handlePointerMove('right', e)}
                   onPointerUp={handlePointerUp}
                   onPointerCancel={handlePointerUp}
                 >
-                  <img
-                    src={capturedSrc}
-                    alt=""
-                    draggable={false}
-                    className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+                  <div
+                    className="absolute"
                     style={{
-                      objectPosition: `calc(50% + ${capOffset.x}px) calc(50% + ${capOffset.y}px)`,
-                      transform: capScale !== 1 ? `scale(${capScale})` : undefined,
-                      transformOrigin: 'center center',
+                      width: `${100 * capScale}%`,
+                      height: `${100 * capScale}%`,
+                      left: `calc(${(1 - capScale) * 50}% + ${capOffset.x}px)`,
+                      top: `calc(${(1 - capScale) * 50}% + ${capOffset.y}px)`,
                     }}
-                  />
+                  >
+                    <img
+                      src={capturedSrc}
+                      alt=""
+                      draggable={false}
+                      className="h-full w-full object-cover pointer-events-none"
+                    />
+                  </div>
                 </div>
                 <button
                   onClick={handleReshoot}

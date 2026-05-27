@@ -295,18 +295,22 @@ export default function ComparePage() {
             onPointerUp={handlePointerUp}
           >
             {firstSrc && (
-              <img
-                src={firstSrc}
-                alt=""
-                draggable={false}
-                className="absolute inset-0 h-full w-full touch-none select-none"
+              <div
+                className="absolute inset-0 touch-none select-none"
                 style={{
-                  objectFit: 'cover',
-                  objectPosition: `calc(50% + ${firstOffset.x}px) calc(50% + ${firstOffset.y}px)`,
-                  transform: firstScale !== 1 ? `scale(${firstScale})` : undefined,
-                  transformOrigin: 'center center',
+                  width: `${100 * firstScale}%`,
+                  height: `${100 * firstScale}%`,
+                  left: `calc(${(1 - firstScale) * 50}% + ${firstOffset.x}px)`,
+                  top: `calc(${(1 - firstScale) * 50}% + ${firstOffset.y}px)`,
                 }}
-              />
+              >
+                <img
+                  src={firstSrc}
+                  alt=""
+                  draggable={false}
+                  className="h-full w-full object-contain pointer-events-none"
+                />
+              </div>
             )}
             {showGrid && <GridOverlay />}
           </div>
@@ -320,18 +324,22 @@ export default function ComparePage() {
             onPointerUp={handlePointerUp}
           >
             {secondSrc && (
-              <img
-                src={secondSrc}
-                alt=""
-                draggable={false}
-                className="absolute inset-0 h-full w-full touch-none select-none"
+              <div
+                className="absolute inset-0 touch-none select-none"
                 style={{
-                  objectFit: 'cover',
-                  objectPosition: `calc(50% + ${secondOffset.x}px) calc(50% + ${secondOffset.y}px)`,
-                  transform: secondScale !== 1 ? `scale(${secondScale})` : undefined,
-                  transformOrigin: 'center center',
+                  width: `${100 * secondScale}%`,
+                  height: `${100 * secondScale}%`,
+                  left: `calc(${(1 - secondScale) * 50}% + ${secondOffset.x}px)`,
+                  top: `calc(${(1 - secondScale) * 50}% + ${secondOffset.y}px)`,
                 }}
-              />
+              >
+                <img
+                  src={secondSrc}
+                  alt=""
+                  draggable={false}
+                  className="h-full w-full object-contain pointer-events-none"
+                />
+              </div>
             )}
             {showGrid && <GridOverlay />}
           </div>
