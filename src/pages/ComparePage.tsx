@@ -1,16 +1,8 @@
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useSession } from '../contexts/SessionContext';
-import { createComparisonImage, shareOrDownloadImage, blobToDataURL } from '../lib/imageProcessor';
+import { useState, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { createComparisonImage, shareOrDownloadImage } from '../lib/imageProcessor';
 import MosaicCanvas from '../components/MosaicCanvas';
 import type { CompareFrameRatio, CompareFrameSettings } from '../types';
-
-interface LocationState {
-  firstId?: string;
-  secondId?: string;
-  firstBlob?: Blob;
-  secondBlob?: Blob;
-}
 
 const RATIO_OPTIONS: { value: CompareFrameRatio; label: string }[] = [
   { value: '3:4', label: '3:4 縦長' },
@@ -32,15 +24,25 @@ const RATIO_VALUES: Record<string, number> = {
 
 const PRESET_COLORS = ['#ffffff', '#000000', '#3DC4A8', '#5BB5E7', '#E5486D', '#F59E0B'];
 
+type GridMode = 'off' | 'white' | 'red';
+const GRID_CYCLE: Record<GridMode, GridMode> = { off: 'white', white: 'red', red: 'off' };
+const GRID_LABELS: Record<GridMode, string> = { off: 'グリッド', white: '白グリッド', red: '赤グリッド' };
+
 function dateStamp() {
   return new Date().toISOString().slice(0, 10).replaceAll('-', '');
 }
 
 export default function ComparePage() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const state = location.state as LocationState | null;
-  const { images } = useSession();
+
+  // Images picked from device
+  const [firstBlob, setFirstBlob] = useState<Blob | null>(null);
+  const [firstUrl, setFirstUrl] = useState<string | null>(null);
+  const [secondBlob, setSecondBlob] = useState<Blob | null>(null);
+  const [secondUrl, setSecondUrl] = useState<string | null>(null);
+
+  const firstInputRef = useRef<HTMLInputElement>(null);
+  const secondInputRef = useRef<HTMLInputElement>(null);
 
   const [settings, setSettings] = useState<CompareFrameSettings>({
     ratio: '3:4',
@@ -60,35 +62,41 @@ export default function ComparePage() {
   const [isExporting, setIsExporting] = useState(false);
   const [editingMosaic, setEditingMosaic] = useState<'first' | 'second' | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [showGrid, setShowGrid] = useState(false);
+  const [gridMode, setGridMode] = useState<GridMode>('off');
 
   // Override blobs for mosaic-edited images
   const [firstBlobOverride, setFirstBlobOverride] = useState<Blob | null>(null);
   const [secondBlobOverride, setSecondBlobOverride] = useState<Blob | null>(null);
 
-  // Resolve blobs: from direct blob or session id
-  const firstImageFromSession = useMemo(() => images.find((i) => i.id === state?.firstId), [images, state?.firstId]);
-  const secondImageFromSession = useMemo(() => images.find((i) => i.id === state?.secondId), [images, state?.secondId]);
+  const effectiveFirstBlob = firstBlobOverride ?? firstBlob;
+  const effectiveSecondBlob = secondBlobOverride ?? secondBlob;
 
-  const firstBlob = firstBlobOverride ?? state?.firstBlob ?? firstImageFromSession?.blob ?? null;
-  const secondBlob = secondBlobOverride ?? state?.secondBlob ?? secondImageFromSession?.blob ?? null;
+  const handlePickFirst = () => firstInputRef.current?.click();
+  const handlePickSecond = () => secondInputRef.current?.click();
 
-  const [firstSrc, setFirstSrc] = useState('');
-  const [secondSrc, setSecondSrc] = useState('');
+  const handleFirstFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (firstUrl) URL.revokeObjectURL(firstUrl);
+    setFirstBlob(file);
+    setFirstUrl(URL.createObjectURL(file));
+    setFirstBlobOverride(null);
+    setFirstScale(1);
+    setFirstOffset({ x: 0, y: 0 });
+    e.target.value = '';
+  };
 
-  useEffect(() => {
-    if (!firstBlob) return;
-    let active = true;
-    blobToDataURL(firstBlob).then((url) => { if (active) setFirstSrc(url); });
-    return () => { active = false; };
-  }, [firstBlob]);
-
-  useEffect(() => {
-    if (!secondBlob) return;
-    let active = true;
-    blobToDataURL(secondBlob).then((url) => { if (active) setSecondSrc(url); });
-    return () => { active = false; };
-  }, [secondBlob]);
+  const handleSecondFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (secondUrl) URL.revokeObjectURL(secondUrl);
+    setSecondBlob(file);
+    setSecondUrl(URL.createObjectURL(file));
+    setSecondBlobOverride(null);
+    setSecondScale(1);
+    setSecondOffset({ x: 0, y: 0 });
+    e.target.value = '';
+  };
 
   // Drag state
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
@@ -113,10 +121,40 @@ export default function ComparePage() {
     dragRef.current = null;
   }, []);
 
+  // Pinch-to-zoom
+  const pinchRef = useRef<{ initialDist: number; initialScale: number } | null>(null);
+
+  const handleTouchStart = useCallback((side: 'first' | 'second', e: React.TouchEvent) => {
+    setSelectedSide(side);
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const currentScale = side === 'first' ? firstScale : secondScale;
+      pinchRef.current = { initialDist: Math.hypot(dx, dy), initialScale: currentScale };
+    }
+  }, [firstScale, secondScale]);
+
+  const handleTouchMove = useCallback((side: 'first' | 'second', e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchRef.current) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const scale = pinchRef.current.initialScale * (dist / pinchRef.current.initialDist);
+      const clamped = Math.max(0.3, Math.min(5, scale));
+      if (side === 'first') setFirstScale(clamped);
+      else setSecondScale(clamped);
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    pinchRef.current = null;
+  }, []);
+
   const handleZoom = (delta: number) => {
     if (!selectedSide) return;
     const setter = selectedSide === 'first' ? setFirstScale : setSecondScale;
-    setter((prev) => Math.max(0.5, Math.min(3, prev + delta)));
+    setter((prev) => Math.max(0.3, Math.min(5, prev + delta)));
   };
 
   const handleReset = () => {
@@ -126,7 +164,7 @@ export default function ComparePage() {
     setSecondOffset({ x: 0, y: 0 });
   };
 
-  const buildOptions = (drawGrid: boolean) => ({
+  const buildOptions = (drawGrid: boolean, gridColor?: string) => ({
     layout: settings.layout,
     ratio: settings.ratio,
     borderEnabled: settings.borderEnabled,
@@ -141,14 +179,16 @@ export default function ComparePage() {
     secondOffsetX: secondOffset.x,
     secondOffsetY: secondOffset.y,
     drawGrid,
+    gridColor,
   });
 
   const handleSave = async (withGrid: boolean) => {
-    if (!firstBlob || !secondBlob) return;
+    if (!effectiveFirstBlob || !effectiveSecondBlob) return;
     setIsExporting(true);
     try {
       const suffix = withGrid ? 'grid' : 'clean';
-      const blob = await createComparisonImage(firstBlob, secondBlob, buildOptions(withGrid));
+      const gridColor = gridMode === 'red' ? 'red' : 'white';
+      const blob = await createComparisonImage(effectiveFirstBlob, effectiveSecondBlob, buildOptions(withGrid, gridColor));
       await shareOrDownloadImage(blob, `pitacame_compare_${suffix}_${dateStamp()}.jpg`);
     } finally {
       setIsExporting(false);
@@ -156,15 +196,15 @@ export default function ComparePage() {
   };
 
   const handleSaveBoth = async () => {
-    if (!firstBlob || !secondBlob) return;
+    if (!effectiveFirstBlob || !effectiveSecondBlob) return;
     setIsExporting(true);
     try {
+      const gridColor = gridMode === 'red' ? 'red' : 'white';
       const [blobClean, blobGrid] = await Promise.all([
-        createComparisonImage(firstBlob, secondBlob, buildOptions(false)),
-        createComparisonImage(firstBlob, secondBlob, buildOptions(true)),
+        createComparisonImage(effectiveFirstBlob, effectiveSecondBlob, buildOptions(false)),
+        createComparisonImage(effectiveFirstBlob, effectiveSecondBlob, buildOptions(true, gridColor)),
       ]);
       await shareOrDownloadImage(blobClean, `pitacame_compare_clean_${dateStamp()}.jpg`);
-      // Small delay so browser handles two downloads
       await new Promise((r) => setTimeout(r, 500));
       await shareOrDownloadImage(blobGrid, `pitacame_compare_grid_${dateStamp()}.jpg`);
     } finally {
@@ -172,21 +212,12 @@ export default function ComparePage() {
     }
   };
 
-  const backPath = state?.firstId ? '/gallery' : '/capture';
-
-  if (!firstBlob || !secondBlob) {
-    return (
-      <div className="flex h-dvh flex-col items-center justify-center bg-black text-white">
-        <p className="text-sm">画像が見つかりません</p>
-        <button onClick={() => navigate(backPath)} className="mt-4 rounded-full bg-white/15 px-5 py-2 text-sm">
-          戻る
-        </button>
-      </div>
-    );
-  }
-
   if (editingMosaic) {
-    const blob = editingMosaic === 'first' ? firstBlob : secondBlob;
+    const blob = editingMosaic === 'first' ? effectiveFirstBlob : effectiveSecondBlob;
+    if (!blob) {
+      setEditingMosaic(null);
+      return null;
+    }
     return (
       <MosaicCanvas
         imageBlob={blob}
@@ -201,36 +232,44 @@ export default function ComparePage() {
   }
 
   const isHorizontal = settings.layout === 'horizontal';
+  const canExport = !!effectiveFirstBlob && !!effectiveSecondBlob;
+
+  // Generate display URLs for mosaic overrides
+  const displayFirstUrl = firstBlobOverride ? URL.createObjectURL(firstBlobOverride) : firstUrl;
+  const displaySecondUrl = secondBlobOverride ? URL.createObjectURL(secondBlobOverride) : secondUrl;
 
   return (
     <div className="flex h-dvh flex-col bg-black text-white">
+      <input ref={firstInputRef} type="file" accept="image/*" className="hidden" onChange={handleFirstFile} />
+      <input ref={secondInputRef} type="file" accept="image/*" className="hidden" onChange={handleSecondFile} />
+
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 bg-slate-900/80 px-3 py-2 backdrop-blur-md" style={{ flexShrink: 0 }}>
-        <button onClick={() => navigate(backPath)} className="flex items-center gap-1 text-xs font-medium">
+        <button onClick={() => navigate('/home')} className="flex items-center gap-1 text-xs font-medium">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          戻る
+          ホーム
         </button>
-        <span className="text-xs font-semibold">比較</span>
+        <span className="text-xs font-semibold">ビフォーアフターを並べる</span>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setShowGrid((v) => !v)}
+            onClick={() => setGridMode((v) => GRID_CYCLE[v])}
             className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition ${
-              showGrid ? 'bg-[#3DC4A8]/70 text-white' : 'bg-white/10 text-white/45'
+              gridMode !== 'off' ? 'bg-[#3DC4A8]/70 text-white' : 'bg-white/10 text-white/45'
             }`}
           >
-            グリッド
+            {GRID_LABELS[gridMode]}
           </button>
-        <button
-          onClick={() => setShowSettings((v) => !v)}
-          className={`rounded-lg p-1.5 transition ${showSettings ? 'bg-white/20' : 'hover:bg-white/10'}`}
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </button>
+          <button
+            onClick={() => setShowSettings((v) => !v)}
+            className={`rounded-lg p-1.5 transition ${showSettings ? 'bg-white/20' : 'hover:bg-white/10'}`}
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -272,7 +311,6 @@ export default function ComparePage() {
             aspectRatio: RATIO_CSS[settings.ratio],
             maxHeight: '100%',
             maxWidth: '100%',
-            /* For portrait ratios height is the constraint; for landscape width is */
             width: (RATIO_VALUES[settings.ratio] ?? 0.75) >= 1 ? '100%' : 'auto',
             height: (RATIO_VALUES[settings.ratio] ?? 0.75) < 1 ? '100%' : 'auto',
             display: 'flex',
@@ -290,58 +328,88 @@ export default function ComparePage() {
                 ? `${settings.dividerWidth}px solid ${settings.borderColor}`
                 : 'none',
             }}
-            onPointerDown={(e) => handlePointerDown('first', e)}
-            onPointerMove={(e) => handlePointerMove('first', e)}
-            onPointerUp={handlePointerUp}
+            onPointerDown={displayFirstUrl ? (e) => handlePointerDown('first', e) : undefined}
+            onPointerMove={displayFirstUrl ? (e) => handlePointerMove('first', e) : undefined}
+            onPointerUp={displayFirstUrl ? handlePointerUp : undefined}
+            onTouchStart={displayFirstUrl ? (e) => handleTouchStart('first', e) : undefined}
+            onTouchMove={displayFirstUrl ? (e) => handleTouchMove('first', e) : undefined}
+            onTouchEnd={displayFirstUrl ? handleTouchEnd : undefined}
           >
-            {firstSrc && (
-              <div
-                className="absolute inset-0 touch-none select-none"
+            {displayFirstUrl ? (
+              <img
+                src={displayFirstUrl}
+                alt=""
+                draggable={false}
+                className="absolute inset-0 h-full w-full object-contain touch-none select-none pointer-events-none"
                 style={{
-                  width: `${100 * firstScale}%`,
-                  height: `${100 * firstScale}%`,
-                  left: `calc(${(1 - firstScale) * 50}% + ${firstOffset.x}px)`,
-                  top: `calc(${(1 - firstScale) * 50}% + ${firstOffset.y}px)`,
+                  transform: `translate(${firstOffset.x}px, ${firstOffset.y}px) scale(${firstScale})`,
+                  transformOrigin: 'center',
                 }}
+              />
+            ) : (
+              <button
+                onClick={handlePickFirst}
+                className="flex h-full w-full flex-col items-center justify-center gap-2 text-white/50 transition hover:text-white/70"
               >
-                <img
-                  src={firstSrc}
-                  alt=""
-                  draggable={false}
-                  className="h-full w-full object-contain pointer-events-none"
-                />
-              </div>
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+                </svg>
+                <span className="text-[11px] font-medium">ビフォー画像を選択</span>
+              </button>
             )}
-            {showGrid && <GridOverlay />}
+            {displayFirstUrl && (
+              <button
+                onClick={handlePickFirst}
+                className="absolute bottom-1 left-1 z-10 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[9px] font-medium text-white/80 backdrop-blur transition hover:bg-black/80"
+              >
+                変更
+              </button>
+            )}
+            {gridMode !== 'off' && displayFirstUrl && <CellGrid color={gridMode} />}
           </div>
 
           {/* Second image */}
           <div
             className={`relative overflow-hidden ${selectedSide === 'second' ? 'ring-2 ring-[#5BB5E7]' : ''}`}
             style={{ flex: 1 }}
-            onPointerDown={(e) => handlePointerDown('second', e)}
-            onPointerMove={(e) => handlePointerMove('second', e)}
-            onPointerUp={handlePointerUp}
+            onPointerDown={displaySecondUrl ? (e) => handlePointerDown('second', e) : undefined}
+            onPointerMove={displaySecondUrl ? (e) => handlePointerMove('second', e) : undefined}
+            onPointerUp={displaySecondUrl ? handlePointerUp : undefined}
+            onTouchStart={displaySecondUrl ? (e) => handleTouchStart('second', e) : undefined}
+            onTouchMove={displaySecondUrl ? (e) => handleTouchMove('second', e) : undefined}
+            onTouchEnd={displaySecondUrl ? handleTouchEnd : undefined}
           >
-            {secondSrc && (
-              <div
-                className="absolute inset-0 touch-none select-none"
+            {displaySecondUrl ? (
+              <img
+                src={displaySecondUrl}
+                alt=""
+                draggable={false}
+                className="absolute inset-0 h-full w-full object-contain touch-none select-none pointer-events-none"
                 style={{
-                  width: `${100 * secondScale}%`,
-                  height: `${100 * secondScale}%`,
-                  left: `calc(${(1 - secondScale) * 50}% + ${secondOffset.x}px)`,
-                  top: `calc(${(1 - secondScale) * 50}% + ${secondOffset.y}px)`,
+                  transform: `translate(${secondOffset.x}px, ${secondOffset.y}px) scale(${secondScale})`,
+                  transformOrigin: 'center',
                 }}
+              />
+            ) : (
+              <button
+                onClick={handlePickSecond}
+                className="flex h-full w-full flex-col items-center justify-center gap-2 text-white/50 transition hover:text-white/70"
               >
-                <img
-                  src={secondSrc}
-                  alt=""
-                  draggable={false}
-                  className="h-full w-full object-contain pointer-events-none"
-                />
-              </div>
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+                </svg>
+                <span className="text-[11px] font-medium">アフター画像を選択</span>
+              </button>
             )}
-            {showGrid && <GridOverlay />}
+            {displaySecondUrl && (
+              <button
+                onClick={handlePickSecond}
+                className="absolute bottom-1 right-1 z-10 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[9px] font-medium text-white/80 backdrop-blur transition hover:bg-black/80"
+              >
+                変更
+              </button>
+            )}
+            {gridMode !== 'off' && displaySecondUrl && <CellGrid color={gridMode} />}
           </div>
         </div>
       </div>
@@ -349,7 +417,6 @@ export default function ComparePage() {
       {/* Settings panel (collapsible) */}
       {showSettings && (
         <div className="space-y-3 border-t border-white/10 bg-slate-900/90 px-4 py-3 backdrop-blur" style={{ flexShrink: 0 }}>
-          {/* Border toggle */}
           <div className="flex items-center justify-between">
             <span className="text-xs text-white/70">枠線</span>
             <button
@@ -362,7 +429,6 @@ export default function ComparePage() {
 
           {settings.borderEnabled && (
             <>
-              {/* Border width */}
               <div>
                 <label className="text-[10px] text-white/50">枠線の太さ: {settings.borderWidth}px</label>
                 <input
@@ -371,8 +437,6 @@ export default function ComparePage() {
                   className="w-full accent-[#3DC4A8]"
                 />
               </div>
-
-              {/* Divider width */}
               <div>
                 <label className="text-[10px] text-white/50">区切り線の太さ: {settings.dividerWidth}px</label>
                 <input
@@ -381,8 +445,6 @@ export default function ComparePage() {
                   className="w-full accent-[#3DC4A8]"
                 />
               </div>
-
-              {/* Border color */}
               <div>
                 <label className="text-[10px] text-white/50">枠線の色</label>
                 <div className="mt-1 flex items-center gap-2">
@@ -404,8 +466,6 @@ export default function ComparePage() {
                   />
                 </div>
               </div>
-
-              {/* Border radius */}
               <div>
                 <label className="text-[10px] text-white/50">角丸: {settings.borderRadius}px</label>
                 <input
@@ -417,17 +477,18 @@ export default function ComparePage() {
             </>
           )}
 
-          {/* Mosaic */}
           <div className="flex gap-2">
             <button
-              onClick={() => setEditingMosaic('first')}
-              className="flex-1 rounded-lg bg-white/10 py-2 text-xs font-medium text-white/80 transition hover:bg-white/20"
+              onClick={() => effectiveFirstBlob && setEditingMosaic('first')}
+              disabled={!effectiveFirstBlob}
+              className="flex-1 rounded-lg bg-white/10 py-2 text-xs font-medium text-white/80 transition hover:bg-white/20 disabled:opacity-30"
             >
               1枚目 モザイク
             </button>
             <button
-              onClick={() => setEditingMosaic('second')}
-              className="flex-1 rounded-lg bg-white/10 py-2 text-xs font-medium text-white/80 transition hover:bg-white/20"
+              onClick={() => effectiveSecondBlob && setEditingMosaic('second')}
+              disabled={!effectiveSecondBlob}
+              className="flex-1 rounded-lg bg-white/10 py-2 text-xs font-medium text-white/80 transition hover:bg-white/20 disabled:opacity-30"
             >
               2枚目 モザイク
             </button>
@@ -437,45 +498,45 @@ export default function ComparePage() {
 
       {/* Bottom controls */}
       <div className="border-t border-white/10 bg-slate-900/80 px-3 py-2.5 backdrop-blur-md" style={{ flexShrink: 0 }}>
-        {/* Zoom controls */}
-        <div className="mb-2 flex items-center justify-center gap-3">
-          <span className="text-[10px] text-white/50">
-            {selectedSide === 'first' ? '1枚目 選択中' : selectedSide === 'second' ? '2枚目 選択中' : '画像をタップして選択'}
-          </span>
-          <button
-            onClick={() => handleZoom(-0.1)}
-            disabled={!selectedSide}
-            className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white disabled:opacity-30"
-          >
-            -
-          </button>
-          <button
-            onClick={() => handleZoom(0.1)}
-            disabled={!selectedSide}
-            className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white disabled:opacity-30"
-          >
-            +
-          </button>
-          <button
-            onClick={handleReset}
-            className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-medium text-white/70"
-          >
-            リセット
-          </button>
-        </div>
+        {(displayFirstUrl || displaySecondUrl) && (
+          <div className="mb-2 flex items-center justify-center gap-3">
+            <span className="text-[10px] text-white/50">
+              {selectedSide === 'first' ? '1枚目 選択中' : selectedSide === 'second' ? '2枚目 選択中' : '画像をタップして選択'}
+            </span>
+            <button
+              onClick={() => handleZoom(-0.1)}
+              disabled={!selectedSide}
+              className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white disabled:opacity-30"
+            >
+              -
+            </button>
+            <button
+              onClick={() => handleZoom(0.1)}
+              disabled={!selectedSide}
+              className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white disabled:opacity-30"
+            >
+              +
+            </button>
+            <button
+              onClick={handleReset}
+              className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-medium text-white/70"
+            >
+              リセット
+            </button>
+          </div>
+        )}
 
-        {/* Save buttons */}
         <div className="flex gap-2">
           <button
             onClick={() => handleSave(false)}
-            disabled={isExporting}
+            disabled={isExporting || !canExport}
             className="flex-1 rounded-full bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] py-2.5 text-xs font-bold text-white shadow-lg transition hover:brightness-105 active:scale-[0.97] disabled:opacity-50"
           >
             グリッドなし保存
           </button>
           <button
             onClick={() => handleSave(true)}
-            disabled={isExporting}
+            disabled={isExporting || !canExport}
             className="flex-1 rounded-full bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] py-2.5 text-xs font-bold text-white shadow-lg transition hover:brightness-105 active:scale-[0.97] disabled:opacity-50"
           >
             グリッド付き保存
@@ -483,7 +544,7 @@ export default function ComparePage() {
         </div>
         <button
           onClick={handleSaveBoth}
-          disabled={isExporting}
+          disabled={isExporting || !canExport}
           className="mt-1.5 w-full rounded-full border border-white/20 bg-white/10 py-2.5 text-xs font-semibold text-white/80 transition hover:bg-white/20 active:scale-[0.97] disabled:opacity-50"
         >
           {isExporting ? '出力中...' : '両方まとめて保存'}
@@ -493,15 +554,26 @@ export default function ComparePage() {
   );
 }
 
-function GridOverlay() {
+function CellGrid({ color }: { color: 'white' | 'red' }) {
+  const cols = 6;
+  const rows = 20;
+  const lineColor = color === 'red' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.35)';
   return (
-    <div
-      className="absolute inset-0 pointer-events-none z-10"
-      style={{
-        backgroundImage:
-          'linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)',
-        backgroundSize: '20px 20px',
-      }}
-    />
+    <div className="absolute inset-0 pointer-events-none z-10">
+      {Array.from({ length: cols - 1 }, (_, i) => (
+        <div
+          key={`v${i}`}
+          className="absolute top-0 bottom-0"
+          style={{ left: `${((i + 1) / cols) * 100}%`, width: '0.5px', background: lineColor }}
+        />
+      ))}
+      {Array.from({ length: rows - 1 }, (_, i) => (
+        <div
+          key={`h${i}`}
+          className="absolute left-0 right-0"
+          style={{ top: `${((i + 1) / rows) * 100}%`, height: '0.5px', background: lineColor }}
+        />
+      ))}
+    </div>
   );
 }

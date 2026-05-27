@@ -1,11 +1,10 @@
 import { Component, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import { SessionProvider } from './contexts/SessionContext';
 import AuthGuard from './components/AuthGuard';
 import HomePage from './pages/HomePage';
-import CapturePage from './pages/CapturePage';
-import GalleryPage from './pages/GalleryPage';
+import CaptureBeforePage from './pages/CaptureBeforePage';
+import CaptureAfterPage from './pages/CaptureAfterPage';
 import ComparePage from './pages/ComparePage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsPage from './pages/TermsPage';
@@ -61,7 +60,6 @@ export default function App() {
     <ErrorBoundary>
       <BrowserRouter basename={basename || undefined}>
         <AuthProvider>
-          <SessionProvider>
             <Routes>
               <Route path="/" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
@@ -71,11 +69,10 @@ export default function App() {
               <Route path="/manual" element={<ManualPage />} />
 
               <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
-              <Route path="/capture" element={<AuthGuard><CapturePage /></AuthGuard>} />
-              <Route path="/gallery" element={<AuthGuard><GalleryPage /></AuthGuard>} />
+              <Route path="/capture-before" element={<AuthGuard><CaptureBeforePage /></AuthGuard>} />
+              <Route path="/capture-after" element={<AuthGuard><CaptureAfterPage /></AuthGuard>} />
               <Route path="/compare" element={<AuthGuard><ComparePage /></AuthGuard>} />
             </Routes>
-          </SessionProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

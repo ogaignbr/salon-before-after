@@ -75,14 +75,33 @@ export default function HomePage() {
 
         <div className="space-y-3 animate-slide-up" style={{ animationDelay: '0.08s' }}>
           <button
-            onClick={() => navigate('/capture')}
-            className="animate-subtle-pulse flex w-full items-center justify-center gap-2.5 rounded-[12px] border border-[#5BB5E7]/30 bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] px-4 py-4 text-[20px] font-bold text-white shadow-[0_8px_18px_rgba(70,160,200,0.24)] transition-all hover:brightness-105 active:scale-[0.985]"
+            onClick={() => navigate('/capture-before')}
+            className="animate-subtle-pulse flex w-full items-center justify-center gap-2.5 rounded-[12px] border border-[#5BB5E7]/30 bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] px-4 py-4 text-[18px] font-bold text-white shadow-[0_8px_18px_rgba(70,160,200,0.24)] transition-all hover:brightness-105 active:scale-[0.985]"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 9a2 2 0 012-2h1.3a2 2 0 001.6-.8l.42-.56A2 2 0 0111.12 5h1.76a2 2 0 011.8 1.12l.42.56a2 2 0 001.6.8H18a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2V9z" />
               <circle cx="12" cy="12.5" r="2.8" />
             </svg>
-            撮影を開始する
+            ビフォーを撮影
+          </button>
+          <button
+            onClick={() => navigate('/capture-after')}
+            className="flex w-full items-center justify-center gap-2.5 rounded-[12px] border border-[#5BB5E7]/30 bg-[linear-gradient(135deg,#48B8CB_0%,#5BB5E7_100%)] px-4 py-4 text-[18px] font-bold text-white shadow-[0_8px_18px_rgba(70,160,200,0.24)] transition-all hover:brightness-105 active:scale-[0.985]"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 9a2 2 0 012-2h1.3a2 2 0 001.6-.8l.42-.56A2 2 0 0111.12 5h1.76a2 2 0 011.8 1.12l.42.56a2 2 0 001.6.8H18a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2V9z" />
+              <circle cx="12" cy="12.5" r="2.8" />
+            </svg>
+            アフターを撮影
+          </button>
+          <button
+            onClick={() => navigate('/compare')}
+            className="flex w-full items-center justify-center gap-2.5 rounded-[12px] border border-[#A8DDE5]/30 bg-[rgba(255,255,255,0.92)] px-4 py-4 text-[18px] font-bold text-[#1B3A5C] shadow-[0_8px_18px_rgba(60,140,170,0.12)] transition-all hover:brightness-105 active:scale-[0.985] dark:border-white/10 dark:bg-slate-900/45 dark:text-slate-100"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
+            </svg>
+            ビフォーアフターを並べる
           </button>
         </div>
 
