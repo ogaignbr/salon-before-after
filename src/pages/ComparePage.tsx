@@ -301,7 +301,7 @@ export default function ComparePage() {
                 draggable={false}
                 className="absolute inset-0 h-full w-full touch-none select-none"
                 style={{
-                  objectFit: 'contain',
+                  objectFit: 'cover',
                   transform: `scale(${firstScale}) translate(${firstOffset.x / firstScale}px, ${firstOffset.y / firstScale}px)`,
                 }}
               />
@@ -324,7 +324,7 @@ export default function ComparePage() {
                 draggable={false}
                 className="absolute inset-0 h-full w-full touch-none select-none"
                 style={{
-                  objectFit: 'contain',
+                  objectFit: 'cover',
                   transform: `scale(${secondScale}) translate(${secondOffset.x / secondScale}px, ${secondOffset.y / secondScale}px)`,
                 }}
               />

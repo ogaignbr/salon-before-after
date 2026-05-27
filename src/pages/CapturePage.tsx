@@ -15,14 +15,19 @@ export default function CapturePage() {
   const [refScale, setRefScale] = useState(1);
   const [refOffset, setRefOffset] = useState({ x: 0, y: 0 });
 
-  // Right side: captured image or live camera
+  // Right side: captured image
   const [capturedSrc, setCapturedSrc] = useState<string | null>(null);
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
+  const [capScale, setCapScale] = useState(1);
+  const [capOffset, setCapOffset] = useState({ x: 0, y: 0 });
+
+  // Which side is selected for adjustment
+  const [selectedSide, setSelectedSide] = useState<'left' | 'right'>('left');
 
   const [flash, setFlash] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
 
-  // Drag state for reference image
+  // Drag state
   const dragState = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   // Pinch state
   const pinchState = useRef<{ initialDist: number; initialScale: number } | null>(null);
@@ -50,14 +55,18 @@ export default function CapturePage() {
     setFlash(true);
     window.setTimeout(() => setFlash(false), 150);
     setCapturedBlob(blob);
+    setCapScale(1);
+    setCapOffset({ x: 0, y: 0 });
     addImage(blob);
     blobToDataURL(blob).then(setCapturedSrc);
   };
 
-  // Reshoot: go back to camera on right side
+  // Reshoot
   const handleReshoot = () => {
     setCapturedSrc(null);
     setCapturedBlob(null);
+    setCapScale(1);
+    setCapOffset({ x: 0, y: 0 });
   };
 
   const handleBack = () => {
@@ -65,67 +74,83 @@ export default function CapturePage() {
     navigate('/home');
   };
 
-  // --- Reference image drag ---
-  const handleRefPointerDown = useCallback((e: React.PointerEvent) => {
+  // --- Generic drag for selected side ---
+  const handlePointerDown = useCallback((side: 'left' | 'right', e: React.PointerEvent) => {
+    setSelectedSide(side);
+    const offset = side === 'left' ? refOffset : capOffset;
     dragState.current = {
       startX: e.clientX,
       startY: e.clientY,
-      origX: refOffset.x,
-      origY: refOffset.y,
+      origX: offset.x,
+      origY: offset.y,
     };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }, [refOffset]);
+  }, [refOffset, capOffset]);
 
-  const handleRefPointerMove = useCallback((e: React.PointerEvent) => {
+  const handlePointerMove = useCallback((side: 'left' | 'right', e: React.PointerEvent) => {
     if (!dragState.current) return;
     const dx = e.clientX - dragState.current.startX;
     const dy = e.clientY - dragState.current.startY;
-    setRefOffset({
-      x: dragState.current.origX + dx,
-      y: dragState.current.origY + dy,
-    });
+    const newOffset = { x: dragState.current.origX + dx, y: dragState.current.origY + dy };
+    if (side === 'left') setRefOffset(newOffset);
+    else setCapOffset(newOffset);
   }, []);
 
-  const handleRefPointerUp = useCallback(() => {
+  const handlePointerUp = useCallback(() => {
     dragState.current = null;
   }, []);
 
-  // --- Reference image pinch-to-zoom ---
-  const handleRefTouchStart = useCallback((e: React.TouchEvent) => {
+  // --- Pinch-to-zoom ---
+  const handleTouchStart = useCallback((side: 'left' | 'right', e: React.TouchEvent) => {
+    setSelectedSide(side);
     if (e.touches.length === 2) {
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const currentScale = side === 'left' ? refScale : capScale;
       pinchState.current = {
         initialDist: Math.hypot(dx, dy),
-        initialScale: refScale,
+        initialScale: currentScale,
       };
     }
-  }, [refScale]);
+  }, [refScale, capScale]);
 
-  const handleRefTouchMove = useCallback((e: React.TouchEvent) => {
+  const handleTouchMove = useCallback((side: 'left' | 'right', e: React.TouchEvent) => {
     if (e.touches.length === 2 && pinchState.current) {
       e.preventDefault();
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const dist = Math.hypot(dx, dy);
       const scale = pinchState.current.initialScale * (dist / pinchState.current.initialDist);
-      setRefScale(Math.max(0.3, Math.min(5, scale)));
+      const clamped = Math.max(0.3, Math.min(5, scale));
+      if (side === 'left') setRefScale(clamped);
+      else setCapScale(clamped);
     }
   }, []);
 
-  const handleRefTouchEnd = useCallback(() => {
+  const handleTouchEnd = useCallback(() => {
     pinchState.current = null;
   }, []);
 
-  // Scale buttons for reference
-  const handleRefZoom = (delta: number) => {
-    setRefScale((prev) => Math.max(0.3, Math.min(5, prev + delta)));
+  // Zoom buttons for selected side
+  const handleZoom = (delta: number) => {
+    if (selectedSide === 'left') {
+      setRefScale((prev) => Math.max(0.3, Math.min(5, prev + delta)));
+    } else {
+      setCapScale((prev) => Math.max(0.3, Math.min(5, prev + delta)));
+    }
   };
 
-  const handleRefReset = () => {
-    setRefScale(1);
-    setRefOffset({ x: 0, y: 0 });
+  const handleReset = () => {
+    if (selectedSide === 'left') {
+      setRefScale(1);
+      setRefOffset({ x: 0, y: 0 });
+    } else {
+      setCapScale(1);
+      setCapOffset({ x: 0, y: 0 });
+    }
   };
+
+  const currentScale = selectedSide === 'left' ? refScale : capScale;
 
   return (
     <div className="relative flex flex-col overflow-hidden bg-black" style={{ height: '100dvh' }}>
@@ -161,30 +186,29 @@ export default function CapturePage() {
         >
           {/* Left: Reference Image */}
           <div
-            className="relative flex-1 overflow-hidden border-r border-white/20 bg-slate-900"
-            onTouchStart={handleRefTouchStart}
-            onTouchMove={handleRefTouchMove}
-            onTouchEnd={handleRefTouchEnd}
+            className={`relative flex-1 overflow-hidden border-r border-white/20 bg-slate-900 ${selectedSide === 'left' && refSrc ? 'ring-2 ring-inset ring-[#3DC4A8]' : ''}`}
+            onTouchStart={(e) => handleTouchStart('left', e)}
+            onTouchMove={(e) => handleTouchMove('left', e)}
+            onTouchEnd={handleTouchEnd}
           >
             {refSrc ? (
               <div
                 className="absolute inset-0 touch-none select-none"
-                onPointerDown={handleRefPointerDown}
-                onPointerMove={handleRefPointerMove}
-                onPointerUp={handleRefPointerUp}
-                onPointerCancel={handleRefPointerUp}
+                onPointerDown={(e) => handlePointerDown('left', e)}
+                onPointerMove={(e) => handlePointerMove('left', e)}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
               >
                 <img
                   src={refSrc}
                   alt=""
                   draggable={false}
-                  className="absolute inset-0 h-full w-full object-contain pointer-events-none"
+                  className="absolute inset-0 h-full w-full object-cover pointer-events-none"
                   style={{
                     transform: `scale(${refScale}) translate(${refOffset.x / refScale}px, ${refOffset.y / refScale}px)`,
                     transformOrigin: 'center center',
                   }}
                 />
-                {/* Grid on left side */}
                 {showGrid && (
                   <div
                     className="absolute inset-0 pointer-events-none z-10"
@@ -206,7 +230,6 @@ export default function CapturePage() {
               </label>
             )}
 
-            {/* Re-select overlay button */}
             {refSrc && (
               <label className="absolute bottom-1 left-1 z-10 flex cursor-pointer items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[9px] font-medium text-white/80 backdrop-blur transition hover:bg-black/80">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -219,14 +242,32 @@ export default function CapturePage() {
           </div>
 
           {/* Right: Camera / Captured */}
-          <div className="relative flex-1 overflow-hidden bg-black">
+          <div
+            className={`relative flex-1 overflow-hidden bg-black ${selectedSide === 'right' && capturedSrc ? 'ring-2 ring-inset ring-[#5BB5E7]' : ''}`}
+            onTouchStart={(e) => capturedSrc && handleTouchStart('right', e)}
+            onTouchMove={(e) => capturedSrc && handleTouchMove('right', e)}
+            onTouchEnd={capturedSrc ? handleTouchEnd : undefined}
+          >
             {capturedSrc ? (
               <>
-                <img
-                  src={capturedSrc}
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-contain"
-                />
+                <div
+                  className="absolute inset-0 touch-none select-none"
+                  onPointerDown={(e) => handlePointerDown('right', e)}
+                  onPointerMove={(e) => handlePointerMove('right', e)}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
+                >
+                  <img
+                    src={capturedSrc}
+                    alt=""
+                    draggable={false}
+                    className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+                    style={{
+                      transform: `scale(${capScale}) translate(${capOffset.x / capScale}px, ${capOffset.y / capScale}px)`,
+                      transformOrigin: 'center center',
+                    }}
+                  />
+                </div>
                 <button
                   onClick={handleReshoot}
                   className="absolute bottom-1 right-1 z-10 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[9px] font-medium text-white/80 backdrop-blur transition hover:bg-black/80"
@@ -241,13 +282,12 @@ export default function CapturePage() {
               <>
                 <video
                   ref={videoRef}
-                  className="absolute inset-0 h-full w-full object-contain"
+                  className="absolute inset-0 h-full w-full object-cover"
                   style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : undefined, background: '#000' }}
                   autoPlay
                   playsInline
                   muted
                 />
-                {/* Grid on camera side */}
                 {showGrid && (
                   <div
                     className="absolute inset-0 pointer-events-none z-10"
@@ -271,14 +311,21 @@ export default function CapturePage() {
 
       {/* Controls */}
       <div className="relative z-20 bg-gradient-to-t from-black/95 to-black/70 px-3 py-2.5" style={{ flexShrink: 0 }}>
-        {/* Ref image zoom controls */}
-        {refSrc && (
+        {/* Zoom controls for selected side */}
+        {(refSrc || capturedSrc) && (
           <div className="mb-2 flex items-center justify-center gap-2">
-            <span className="text-[9px] text-white/40">左画像</span>
-            <button onClick={() => handleRefZoom(-0.1)} className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white/70">-</button>
-            <span className="text-[9px] text-white/50 w-8 text-center">{Math.round(refScale * 100)}%</span>
-            <button onClick={() => handleRefZoom(0.1)} className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white/70">+</button>
-            <button onClick={handleRefReset} className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/50">リセット</button>
+            <span className={`text-[9px] font-medium ${selectedSide === 'left' ? 'text-[#3DC4A8]' : 'text-white/40'}`}>
+              {selectedSide === 'left' ? '左画像 選択中' : '左画像'}
+            </span>
+            <span className="text-white/20">|</span>
+            <span className={`text-[9px] font-medium ${selectedSide === 'right' ? 'text-[#5BB5E7]' : 'text-white/40'}`}>
+              {selectedSide === 'right' ? '右画像 選択中' : '右画像'}
+            </span>
+            <span className="text-white/20">|</span>
+            <button onClick={() => handleZoom(-0.1)} className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white/70">-</button>
+            <span className="text-[9px] text-white/50 w-8 text-center">{Math.round(currentScale * 100)}%</span>
+            <button onClick={() => handleZoom(0.1)} className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white/70">+</button>
+            <button onClick={handleReset} className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/50">リセット</button>
           </div>
         )}
 
