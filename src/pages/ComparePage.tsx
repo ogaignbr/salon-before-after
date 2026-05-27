@@ -302,7 +302,9 @@ export default function ComparePage() {
                 className="absolute inset-0 h-full w-full touch-none select-none"
                 style={{
                   objectFit: 'cover',
-                  transform: `scale(${firstScale}) translate(${firstOffset.x / firstScale}px, ${firstOffset.y / firstScale}px)`,
+                  objectPosition: `calc(50% + ${firstOffset.x}px) calc(50% + ${firstOffset.y}px)`,
+                  transform: firstScale !== 1 ? `scale(${firstScale})` : undefined,
+                  transformOrigin: 'center center',
                 }}
               />
             )}
@@ -325,7 +327,9 @@ export default function ComparePage() {
                 className="absolute inset-0 h-full w-full touch-none select-none"
                 style={{
                   objectFit: 'cover',
-                  transform: `scale(${secondScale}) translate(${secondOffset.x / secondScale}px, ${secondOffset.y / secondScale}px)`,
+                  objectPosition: `calc(50% + ${secondOffset.x}px) calc(50% + ${secondOffset.y}px)`,
+                  transform: secondScale !== 1 ? `scale(${secondScale})` : undefined,
+                  transformOrigin: 'center center',
                 }}
               />
             )}

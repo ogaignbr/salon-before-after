@@ -205,7 +205,8 @@ export default function CapturePage() {
                   draggable={false}
                   className="absolute inset-0 h-full w-full object-cover pointer-events-none"
                   style={{
-                    transform: `scale(${refScale}) translate(${refOffset.x / refScale}px, ${refOffset.y / refScale}px)`,
+                    objectPosition: `calc(50% + ${refOffset.x}px) calc(50% + ${refOffset.y}px)`,
+                    transform: refScale !== 1 ? `scale(${refScale})` : undefined,
                     transformOrigin: 'center center',
                   }}
                 />
@@ -263,7 +264,8 @@ export default function CapturePage() {
                     draggable={false}
                     className="absolute inset-0 h-full w-full object-cover pointer-events-none"
                     style={{
-                      transform: `scale(${capScale}) translate(${capOffset.x / capScale}px, ${capOffset.y / capScale}px)`,
+                      objectPosition: `calc(50% + ${capOffset.x}px) calc(50% + ${capOffset.y}px)`,
+                      transform: capScale !== 1 ? `scale(${capScale})` : undefined,
                       transformOrigin: 'center center',
                     }}
                   />
