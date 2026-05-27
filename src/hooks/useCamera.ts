@@ -16,6 +16,9 @@ export function useCamera() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: mode,
+          // 高解像度を要求（アスペクト比は端末任せ→距離感に影響しない）
+          height: { ideal: 2160 },
+          width: { ideal: 3840 },
         },
         audio: false,
       });
@@ -64,17 +67,15 @@ export function useCamera() {
     const vw = video.videoWidth;
     const vh = video.videoHeight;
 
-    // object-cover で 3:4 表示領域に合わせてクロップ
+    // 表示領域（object-cover）に合わせてクロップ
     const targetRatio = 3 / 4;
     const videoRatio = vw / vh;
 
     let sx = 0, sy = 0, sw = vw, sh = vh;
     if (videoRatio > targetRatio) {
-      // 動画が横に広い → 左右をクロップ
       sw = Math.round(vh * targetRatio);
       sx = Math.round((vw - sw) / 2);
     } else if (videoRatio < targetRatio) {
-      // 動画が縦に長い → 上下をクロップ
       sh = Math.round(vw / targetRatio);
       sy = Math.round((vh - sh) / 2);
     }
@@ -90,7 +91,8 @@ export function useCamera() {
     }
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
 
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    // canvas.toBlob は非同期なので toDataURL で同期的に取得（高画質）
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
     const byteString = atob(dataUrl.split(',')[1]);
     const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
     const ab = new ArrayBuffer(byteString.length);
