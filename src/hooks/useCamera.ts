@@ -67,31 +67,18 @@ export function useCamera() {
     const vw = video.videoWidth;
     const vh = video.videoHeight;
 
-    // 表示領域（object-cover）に合わせてクロップ
-    const targetRatio = 3 / 4;
-    const videoRatio = vw / vh;
-
-    let sx = 0, sy = 0, sw = vw, sh = vh;
-    if (videoRatio > targetRatio) {
-      sw = Math.round(vh * targetRatio);
-      sx = Math.round((vw - sw) / 2);
-    } else if (videoRatio < targetRatio) {
-      sh = Math.round(vw / targetRatio);
-      sy = Math.round((vh - sh) / 2);
-    }
-
+    // クロップせずカメラの元映像をそのままキャプチャ（距離感を維持）
     const canvas = document.createElement('canvas');
-    canvas.width = sw;
-    canvas.height = sh;
+    canvas.width = vw;
+    canvas.height = vh;
     const ctx = canvas.getContext('2d')!;
 
     if (facingMode === 'user') {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
     }
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+    ctx.drawImage(video, 0, 0, vw, vh);
 
-    // canvas.toBlob は非同期なので toDataURL で同期的に取得（高画質）
     const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
     const byteString = atob(dataUrl.split(',')[1]);
     const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
