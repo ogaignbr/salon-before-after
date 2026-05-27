@@ -259,15 +259,13 @@ export default function ComparePage() {
       </div>
 
       {/* Compare Frame */}
-      <div className="flex flex-1 items-center justify-center overflow-hidden px-2 py-2">
+      <div className="flex flex-1 items-center justify-center overflow-hidden px-1 py-1">
         <div
           className="relative overflow-hidden"
           style={{
             aspectRatio: RATIO_CSS[settings.ratio],
+            height: '100%',
             maxWidth: '100%',
-            maxHeight: '100%',
-            width: 'auto',
-            height: 'auto',
             display: 'flex',
             flexDirection: isHorizontal ? 'row' : 'column',
             border: settings.borderEnabled ? `${settings.borderWidth}px solid ${settings.borderColor}` : 'none',
@@ -294,7 +292,7 @@ export default function ComparePage() {
                 draggable={false}
                 className="absolute inset-0 h-full w-full touch-none select-none"
                 style={{
-                  objectFit: 'contain',
+                  objectFit: 'cover',
                   transform: `scale(${firstScale}) translate(${firstOffset.x}px, ${firstOffset.y}px)`,
                 }}
               />
@@ -317,7 +315,7 @@ export default function ComparePage() {
                 draggable={false}
                 className="absolute inset-0 h-full w-full touch-none select-none"
                 style={{
-                  objectFit: 'contain',
+                  objectFit: 'cover',
                   transform: `scale(${secondScale}) translate(${secondOffset.x}px, ${secondOffset.y}px)`,
                 }}
               />

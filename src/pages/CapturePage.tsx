@@ -178,7 +178,7 @@ export default function CapturePage() {
                   src={refSrc}
                   alt=""
                   draggable={false}
-                  className="absolute inset-0 h-full w-full object-contain pointer-events-none"
+                  className="absolute inset-0 h-full w-full object-cover pointer-events-none"
                   style={{
                     transform: `scale(${refScale}) translate(${refOffset.x / refScale}px, ${refOffset.y / refScale}px)`,
                     transformOrigin: 'center center',
@@ -225,7 +225,7 @@ export default function CapturePage() {
                 <img
                   src={capturedSrc}
                   alt=""
-                  className="absolute inset-0 h-full w-full object-contain"
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
                 <button
                   onClick={handleReshoot}
@@ -241,7 +241,7 @@ export default function CapturePage() {
               <>
                 <video
                   ref={videoRef}
-                  className="absolute inset-0 h-full w-full object-contain"
+                  className="absolute inset-0 h-full w-full object-cover"
                   style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : undefined, background: '#000' }}
                   autoPlay
                   playsInline

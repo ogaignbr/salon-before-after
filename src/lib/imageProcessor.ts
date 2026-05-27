@@ -120,16 +120,18 @@ export async function createComparisonImage(
     ctx.rect(area.x, area.y, area.w, area.h);
     ctx.clip();
 
-    // Contain fit
+    // Cover fit (fill height, crop left/right if needed)
     const imgAspect = img.width / img.height;
     const cellAspect = area.w / area.h;
     let drawW: number, drawH: number;
     if (imgAspect > cellAspect) {
-      drawW = area.w;
-      drawH = area.w / imgAspect;
-    } else {
+      // Image is wider than cell: fill height, crop sides
       drawH = area.h;
       drawW = area.h * imgAspect;
+    } else {
+      // Image is taller than cell: fill width, crop top/bottom
+      drawW = area.w;
+      drawH = area.w / imgAspect;
     }
 
     // Scale relative to output pixel size
