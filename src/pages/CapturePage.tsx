@@ -284,7 +284,7 @@ export default function CapturePage() {
               <>
                 <video
                   ref={videoRef}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-contain"
                   style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : undefined, background: '#000' }}
                   autoPlay
                   playsInline
