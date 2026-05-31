@@ -125,16 +125,16 @@ export async function createComparisonImage(
     ctx.rect(area.x, area.y, area.w, area.h);
     ctx.clip();
 
-    // Cover fit (fill cell, crop overflow)
+    // Contain fit (whole image fits inside cell — matches on-screen object-contain)
     const imgAspect = img.width / img.height;
     const cellAspect = area.w / area.h;
     let drawW: number, drawH: number;
     if (imgAspect > cellAspect) {
-      drawH = area.h;
-      drawW = area.h * imgAspect;
-    } else {
       drawW = area.w;
       drawH = area.w / imgAspect;
+    } else {
+      drawH = area.h;
+      drawW = area.h * imgAspect;
     }
 
     // Scale relative to output pixel size
@@ -306,12 +306,13 @@ export async function createComparisonVideo(
     const imgAspect = vw / vh;
     const cellAspect = area.w / area.h;
     let drawW: number, drawH: number;
+    // Contain fit (whole video fits inside cell — matches on-screen object-contain)
     if (imgAspect > cellAspect) {
-      drawH = area.h;
-      drawW = area.h * imgAspect;
-    } else {
       drawW = area.w;
       drawH = area.w / imgAspect;
+    } else {
+      drawH = area.h;
+      drawW = area.h * imgAspect;
     }
     const scaleRatio = totalW / (window.innerWidth || 420);
     const scaledOffsetX = offsetX * scaleRatio;
