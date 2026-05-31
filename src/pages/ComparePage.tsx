@@ -83,6 +83,17 @@ export default function ComparePage() {
   const [secondEnd, setSecondEnd] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // Generated video preview modal (so iOS gets fresh user activation for save)
+  const [previewVideoBlob, setPreviewVideoBlob] = useState<Blob | null>(null);
+  const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
+  const [previewVideoName, setPreviewVideoName] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewVideoUrl) URL.revokeObjectURL(previewVideoUrl);
+    };
+  }, [previewVideoUrl]);
+
   const effectiveFirstBlob = firstBlobOverride ?? firstBlob;
   const effectiveSecondBlob = secondBlobOverride ?? secondBlob;
 
@@ -293,24 +304,30 @@ export default function ComparePage() {
     secondEnd: secondEnd > 0 ? secondEnd : undefined,
   });
 
-  const handleSave = async (withGrid: boolean) => {
+  const handleSave = async () => {
     if (!effectiveFirstBlob || !effectiveSecondBlob) return;
     setIsExporting(true);
     setExportProgress(0);
     try {
-      const suffix = withGrid ? 'grid' : 'clean';
+      const drawGrid = gridMode !== 'off';
       const gridColor = gridMode === 'red' ? 'red' : 'white';
+      const suffix = gridMode === 'off' ? 'clean' : gridMode === 'red' ? 'grid_red' : 'grid_white';
       if (mode === 'photo') {
-        const blob = await createComparisonImage(effectiveFirstBlob, effectiveSecondBlob, buildOptions(withGrid, gridColor));
+        const blob = await createComparisonImage(effectiveFirstBlob, effectiveSecondBlob, buildOptions(drawGrid, gridColor));
         await shareOrDownloadImage(blob, `pitacame_compare_${suffix}_${dateStamp()}.jpg`);
       } else {
         const blob = await createComparisonVideo(
           effectiveFirstBlob, effectiveSecondBlob,
-          buildOptions(withGrid, gridColor),
+          buildOptions(drawGrid, gridColor),
           (p) => setExportProgress(p),
         );
+        // Show in preview modal so user can save with a fresh tap (iOS needs fresh user activation for share/download)
+        if (previewVideoUrl) URL.revokeObjectURL(previewVideoUrl);
+        const url = URL.createObjectURL(blob);
         const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-        await shareOrDownloadVideo(blob, `pitacame_compare_video_${suffix}_${dateStamp()}.${ext}`);
+        setPreviewVideoBlob(blob);
+        setPreviewVideoUrl(url);
+        setPreviewVideoName(`pitacame_compare_video_${suffix}_${dateStamp()}.${ext}`);
       }
     } finally {
       setIsExporting(false);
@@ -318,42 +335,16 @@ export default function ComparePage() {
     }
   };
 
-  const handleSaveBoth = async () => {
-    if (!effectiveFirstBlob || !effectiveSecondBlob) return;
-    setIsExporting(true);
-    setExportProgress(0);
-    try {
-      const gridColor = gridMode === 'red' ? 'red' : 'white';
-      if (mode === 'photo') {
-        const [blobClean, blobGrid] = await Promise.all([
-          createComparisonImage(effectiveFirstBlob, effectiveSecondBlob, buildOptions(false)),
-          createComparisonImage(effectiveFirstBlob, effectiveSecondBlob, buildOptions(true, gridColor)),
-        ]);
-        await shareOrDownloadImage(blobClean, `pitacame_compare_clean_${dateStamp()}.jpg`);
-        await new Promise((r) => setTimeout(r, 500));
-        await shareOrDownloadImage(blobGrid, `pitacame_compare_grid_${dateStamp()}.jpg`);
-      } else {
-        // Videos: render sequentially (each requires real-time playback)
-        const blobClean = await createComparisonVideo(
-          effectiveFirstBlob, effectiveSecondBlob,
-          buildOptions(false),
-          (p) => setExportProgress(p / 2),
-        );
-        const blobGrid = await createComparisonVideo(
-          effectiveFirstBlob, effectiveSecondBlob,
-          buildOptions(true, gridColor),
-          (p) => setExportProgress(0.5 + p / 2),
-        );
-        const extClean = blobClean.type.includes('mp4') ? 'mp4' : 'webm';
-        const extGrid = blobGrid.type.includes('mp4') ? 'mp4' : 'webm';
-        await shareOrDownloadVideo(blobClean, `pitacame_compare_video_clean_${dateStamp()}.${extClean}`);
-        await new Promise((r) => setTimeout(r, 500));
-        await shareOrDownloadVideo(blobGrid, `pitacame_compare_video_grid_${dateStamp()}.${extGrid}`);
-      }
-    } finally {
-      setIsExporting(false);
-      setExportProgress(0);
-    }
+  const handleSavePreview = async () => {
+    if (!previewVideoBlob || !previewVideoName) return;
+    await shareOrDownloadVideo(previewVideoBlob, previewVideoName);
+  };
+
+  const handleClosePreview = () => {
+    if (previewVideoUrl) URL.revokeObjectURL(previewVideoUrl);
+    setPreviewVideoBlob(null);
+    setPreviewVideoUrl(null);
+    setPreviewVideoName(null);
   };
 
   if (editingMosaic) {
@@ -778,34 +769,51 @@ export default function ComparePage() {
           </div>
         )}
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleSave(false)}
-            disabled={isExporting || !canExport}
-            className="flex-1 rounded-full bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] py-2.5 text-xs font-bold text-white shadow-lg transition hover:brightness-105 active:scale-[0.97] disabled:opacity-50"
-          >
-            グリッドなし保存
-          </button>
-          <button
-            onClick={() => handleSave(true)}
-            disabled={isExporting || !canExport}
-            className="flex-1 rounded-full bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] py-2.5 text-xs font-bold text-white shadow-lg transition hover:brightness-105 active:scale-[0.97] disabled:opacity-50"
-          >
-            グリッド付き保存
-          </button>
-        </div>
         <button
-          onClick={handleSaveBoth}
+          onClick={handleSave}
           disabled={isExporting || !canExport}
-          className="mt-1.5 w-full rounded-full border border-white/20 bg-white/10 py-2.5 text-xs font-semibold text-white/80 transition hover:bg-white/20 active:scale-[0.97] disabled:opacity-50"
+          className="w-full rounded-full bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] py-3 text-sm font-bold text-white shadow-lg transition hover:brightness-105 active:scale-[0.97] disabled:opacity-50"
         >
           {isExporting
             ? mode === 'video' && exportProgress > 0
               ? `動画出力中... ${Math.round(exportProgress * 100)}%`
               : '出力中...'
-            : '両方まとめて保存'}
+            : `保存（${gridMode === 'off' ? 'グリッドなし' : gridMode === 'red' ? '赤グリッド' : '白グリッド'}）`}
         </button>
       </div>
+
+      {/* Video preview modal — required for iOS to keep user activation when sharing/downloading */}
+      {previewVideoUrl && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
+          <div className="flex items-center justify-between border-b border-white/10 bg-slate-900 px-3 py-2 text-white">
+            <button onClick={handleClosePreview} className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium">
+              閉じる
+            </button>
+            <span className="text-xs font-semibold">動画プレビュー</span>
+            <div className="w-12" />
+          </div>
+          <div className="flex flex-1 items-center justify-center overflow-hidden p-3">
+            <video
+              src={previewVideoUrl}
+              controls
+              autoPlay
+              playsInline
+              className="max-h-full max-w-full"
+            />
+          </div>
+          <div className="space-y-2 border-t border-white/10 bg-slate-900 px-3 py-3">
+            <button
+              onClick={handleSavePreview}
+              className="w-full rounded-full bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] py-3 text-sm font-bold text-white shadow-lg active:scale-[0.97]"
+            >
+              端末に保存 / 共有
+            </button>
+            <p className="text-center text-[10px] leading-relaxed text-white/60">
+              保存できない場合は、上のプレビューを長押し →「ビデオを保存」でも保存できます
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
