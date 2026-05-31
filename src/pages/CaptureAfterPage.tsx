@@ -33,6 +33,33 @@ export default function CaptureAfterPage() {
   const [mode, setMode] = useState<CaptureMode>('photo');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const beforeVideoRef = useRef<HTMLVideoElement>(null);
+  const [beforePlaying, setBeforePlaying] = useState(false);
+
+  const handleModeSwitch = (next: CaptureMode) => {
+    if (next === mode) return;
+    if (beforeUrl) URL.revokeObjectURL(beforeUrl);
+    setBeforeUrl(null);
+    setBeforeScale(1);
+    setBeforeOffset({ x: 0, y: 0 });
+    setBeforePlaying(false);
+    if (capturedUrl) URL.revokeObjectURL(capturedUrl);
+    setCapturedBlob(null);
+    setCapturedUrl(null);
+    clearRecording();
+    setMode(next);
+  };
+
+  const toggleBeforePlay = useCallback(async () => {
+    const v = beforeVideoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      try { await v.play(); setBeforePlaying(true); } catch {/* ignore */}
+    } else {
+      v.pause();
+      setBeforePlaying(false);
+    }
+  }, []);
 
   // Drag state for before image
   const dragState = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
@@ -176,7 +203,7 @@ export default function CaptureAfterPage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept={mode === 'photo' ? 'image/*' : 'video/*'}
         className="hidden"
         onChange={handleFileChange}
       />
@@ -226,16 +253,32 @@ export default function CaptureAfterPage() {
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
               >
-                <img
-                  src={beforeUrl}
-                  alt="ビフォー"
-                  draggable={false}
-                  className="absolute inset-0 h-full w-full object-contain pointer-events-none"
-                  style={{
-                    transform: `translate(${beforeOffset.x}px, ${beforeOffset.y}px) scale(${beforeScale})`,
-                    transformOrigin: 'center',
-                  }}
-                />
+                {mode === 'photo' ? (
+                  <img
+                    src={beforeUrl}
+                    alt="ビフォー"
+                    draggable={false}
+                    className="absolute inset-0 h-full w-full object-contain pointer-events-none"
+                    style={{
+                      transform: `translate(${beforeOffset.x}px, ${beforeOffset.y}px) scale(${beforeScale})`,
+                      transformOrigin: 'center',
+                    }}
+                  />
+                ) : (
+                  <video
+                    ref={beforeVideoRef}
+                    src={beforeUrl}
+                    muted
+                    playsInline
+                    preload="auto"
+                    onEnded={() => setBeforePlaying(false)}
+                    className="absolute inset-0 h-full w-full object-contain pointer-events-none"
+                    style={{
+                      transform: `translate(${beforeOffset.x}px, ${beforeOffset.y}px) scale(${beforeScale})`,
+                      transformOrigin: 'center',
+                    }}
+                  />
+                )}
                 {gridMode !== 'off' && (
                   <div
                     className="absolute inset-0 pointer-events-none z-10"
@@ -257,19 +300,29 @@ export default function CaptureAfterPage() {
                 <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
                 </svg>
-                <span className="text-[11px] font-medium">ビフォー画像を選択</span>
+                <span className="text-[11px] font-medium">{mode === 'photo' ? 'ビフォー画像を選択' : 'ビフォー動画を選択'}</span>
               </button>
             )}
             {beforeUrl && (
-              <button
-                onClick={handlePickBefore}
-                className="absolute bottom-1 left-1 z-10 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[9px] font-medium text-white/80 backdrop-blur transition hover:bg-black/80"
-              >
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
-                </svg>
-                変更
-              </button>
+              <>
+                <button
+                  onClick={handlePickBefore}
+                  className="absolute bottom-1 left-1 z-10 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[9px] font-medium text-white/80 backdrop-blur transition hover:bg-black/80"
+                >
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+                  </svg>
+                  変更
+                </button>
+                {mode === 'video' && (
+                  <button
+                    onClick={toggleBeforePlay}
+                    className="absolute top-1 left-1 z-10 rounded-full bg-black/60 px-2 py-1 text-[10px] font-bold text-white backdrop-blur"
+                  >
+                    {beforePlaying ? '⏸' : '▶'}
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -324,7 +377,7 @@ export default function CaptureAfterPage() {
         {/* Zoom controls for before image */}
         {beforeUrl && !hasAfterPreview && !isRecording && (
           <div className="mb-2 flex items-center justify-center gap-2">
-            <span className="text-[9px] font-medium text-[#3DC4A8]">ビフォー画像</span>
+            <span className="text-[9px] font-medium text-[#3DC4A8]">{mode === 'photo' ? 'ビフォー画像' : 'ビフォー動画'}</span>
             <button onClick={() => handleZoom(-0.1)} className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white/70">-</button>
             <span className="text-[9px] text-white/50 w-8 text-center">{Math.round(beforeScale * 100)}%</span>
             <button onClick={() => handleZoom(0.1)} className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white/70">+</button>
@@ -360,7 +413,7 @@ export default function CaptureAfterPage() {
                 {gridMode === 'off' ? 'グリッド' : gridMode === 'white' ? 'グリッド(白)' : 'グリッド(赤)'}
               </button>
               <button
-                onClick={() => setMode((m) => m === 'photo' ? 'video' : 'photo')}
+                onClick={() => handleModeSwitch(mode === 'photo' ? 'video' : 'photo')}
                 disabled={isRecording}
                 className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
                   mode === 'video' ? 'bg-red-500/70 text-white' : 'bg-white/10 text-white/60'

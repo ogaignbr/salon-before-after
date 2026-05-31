@@ -31,6 +31,10 @@ export interface ComparisonOptions {
   secondOffsetY: number;
   drawGrid?: boolean;
   gridColor?: string;
+  firstStart?: number;
+  firstEnd?: number;
+  secondStart?: number;
+  secondEnd?: number;
 }
 
 export async function createComparisonImage(
@@ -234,7 +238,13 @@ export async function createComparisonVideo(
     }),
   ]);
 
-  const maxDuration = Math.max(firstVideo.duration, secondVideo.duration);
+  const firstStart = Math.max(0, options.firstStart ?? 0);
+  const firstEnd = Math.min(firstVideo.duration, options.firstEnd ?? firstVideo.duration);
+  const secondStart = Math.max(0, options.secondStart ?? 0);
+  const secondEnd = Math.min(secondVideo.duration, options.secondEnd ?? secondVideo.duration);
+  const firstDur = Math.max(0.1, firstEnd - firstStart);
+  const secondDur = Math.max(0.1, secondEnd - secondStart);
+  const maxDuration = Math.max(firstDur, secondDur);
 
   const {
     layout, ratio, borderEnabled, borderWidth, borderColor,
@@ -381,20 +391,34 @@ export async function createComparisonVideo(
       }
     };
 
-    recorder.start();
+    const seekTo = (v: HTMLVideoElement, t: number) => new Promise<void>((res) => {
+      const handler = () => { v.removeEventListener('seeked', handler); res(); };
+      v.addEventListener('seeked', handler);
+      v.currentTime = t;
+    });
 
-    firstVideo.currentTime = 0;
-    secondVideo.currentTime = 0;
-    Promise.all([firstVideo.play(), secondVideo.play()]).then(() => {
+    Promise.all([seekTo(firstVideo, firstStart), seekTo(secondVideo, secondStart)]).then(() => {
+      recorder.start();
+      return Promise.all([firstVideo.play(), secondVideo.play()]);
+    }).then(() => {
       const startTime = performance.now();
+      let firstStopped = false;
+      let secondStopped = false;
       const loop = () => {
         const elapsed = (performance.now() - startTime) / 1000;
         drawFrame();
         onProgress?.(Math.min(1, elapsed / maxDuration));
+        if (!firstStopped && elapsed >= firstDur) {
+          firstVideo.pause();
+          firstStopped = true;
+        }
+        if (!secondStopped && elapsed >= secondDur) {
+          secondVideo.pause();
+          secondStopped = true;
+        }
         if (elapsed >= maxDuration) {
           firstVideo.pause();
           secondVideo.pause();
-          // Allow last frame to flush
           window.setTimeout(() => recorder.stop(), 100);
           return;
         }

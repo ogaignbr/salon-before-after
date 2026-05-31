@@ -72,6 +72,17 @@ export default function ComparePage() {
   const [firstBlobOverride, setFirstBlobOverride] = useState<Blob | null>(null);
   const [secondBlobOverride, setSecondBlobOverride] = useState<Blob | null>(null);
 
+  // Video state
+  const firstVideoRef = useRef<HTMLVideoElement>(null);
+  const secondVideoRef = useRef<HTMLVideoElement>(null);
+  const [firstDuration, setFirstDuration] = useState(0);
+  const [secondDuration, setSecondDuration] = useState(0);
+  const [firstStart, setFirstStart] = useState(0);
+  const [firstEnd, setFirstEnd] = useState(0);
+  const [secondStart, setSecondStart] = useState(0);
+  const [secondEnd, setSecondEnd] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
   const effectiveFirstBlob = firstBlobOverride ?? firstBlob;
   const effectiveSecondBlob = secondBlobOverride ?? secondBlob;
 
@@ -83,6 +94,9 @@ export default function ComparePage() {
     setFirstScale(1); setFirstOffset({ x: 0, y: 0 });
     setSecondScale(1); setSecondOffset({ x: 0, y: 0 });
     setSelectedSide(null);
+    setFirstDuration(0); setFirstStart(0); setFirstEnd(0);
+    setSecondDuration(0); setSecondStart(0); setSecondEnd(0);
+    setIsPlaying(false);
   }, [firstUrl, secondUrl]);
 
   const switchMode = useCallback((next: CompareMode) => {
@@ -110,6 +124,8 @@ export default function ComparePage() {
     setFirstBlobOverride(null);
     setFirstScale(1);
     setFirstOffset({ x: 0, y: 0 });
+    setFirstDuration(0); setFirstStart(0); setFirstEnd(0);
+    setIsPlaying(false);
     e.target.value = '';
   };
 
@@ -122,7 +138,71 @@ export default function ComparePage() {
     setSecondBlobOverride(null);
     setSecondScale(1);
     setSecondOffset({ x: 0, y: 0 });
+    setSecondDuration(0); setSecondStart(0); setSecondEnd(0);
+    setIsPlaying(false);
     e.target.value = '';
+  };
+
+  // Auto-pause at trim end while playing
+  useEffect(() => {
+    if (!isPlaying || mode !== 'video') return;
+    const id = window.setInterval(() => {
+      const v1 = firstVideoRef.current;
+      const v2 = secondVideoRef.current;
+      if (v1 && firstEnd > 0 && v1.currentTime >= firstEnd && !v1.paused) v1.pause();
+      if (v2 && secondEnd > 0 && v2.currentTime >= secondEnd && !v2.paused) v2.pause();
+      const aDone = !v1 || v1.paused;
+      const bDone = !v2 || v2.paused;
+      if (aDone && bDone) setIsPlaying(false);
+    }, 80);
+    return () => window.clearInterval(id);
+  }, [isPlaying, firstEnd, secondEnd, mode]);
+
+  const handlePlayPause = useCallback(async () => {
+    const v1 = firstVideoRef.current;
+    const v2 = secondVideoRef.current;
+    if (!v1 && !v2) return;
+    if (isPlaying) {
+      v1?.pause(); v2?.pause();
+      setIsPlaying(false);
+    } else {
+      if (v1 && (v1.currentTime < firstStart || v1.currentTime >= firstEnd)) v1.currentTime = firstStart;
+      if (v2 && (v2.currentTime < secondStart || v2.currentTime >= secondEnd)) v2.currentTime = secondStart;
+      try {
+        await Promise.all([v1?.play(), v2?.play()].filter(Boolean) as Promise<void>[]);
+        setIsPlaying(true);
+      } catch {/* ignore */}
+    }
+  }, [isPlaying, firstStart, firstEnd, secondStart, secondEnd]);
+
+  const handleRewind = useCallback(() => {
+    const v1 = firstVideoRef.current;
+    const v2 = secondVideoRef.current;
+    v1?.pause(); v2?.pause();
+    if (v1) v1.currentTime = firstStart;
+    if (v2) v2.currentTime = secondStart;
+    setIsPlaying(false);
+  }, [firstStart, secondStart]);
+
+  const handleFirstStart = (v: number) => {
+    const clamped = Math.min(v, Math.max(0, firstEnd - 0.1));
+    setFirstStart(clamped);
+    if (firstVideoRef.current) firstVideoRef.current.currentTime = clamped;
+  };
+  const handleFirstEnd = (v: number) => {
+    const clamped = Math.max(v, firstStart + 0.1);
+    setFirstEnd(clamped);
+    if (firstVideoRef.current) firstVideoRef.current.currentTime = clamped;
+  };
+  const handleSecondStart = (v: number) => {
+    const clamped = Math.min(v, Math.max(0, secondEnd - 0.1));
+    setSecondStart(clamped);
+    if (secondVideoRef.current) secondVideoRef.current.currentTime = clamped;
+  };
+  const handleSecondEnd = (v: number) => {
+    const clamped = Math.max(v, secondStart + 0.1);
+    setSecondEnd(clamped);
+    if (secondVideoRef.current) secondVideoRef.current.currentTime = clamped;
   };
 
   // Drag state
@@ -207,6 +287,10 @@ export default function ComparePage() {
     secondOffsetY: secondOffset.y,
     drawGrid,
     gridColor,
+    firstStart,
+    firstEnd: firstEnd > 0 ? firstEnd : undefined,
+    secondStart,
+    secondEnd: secondEnd > 0 ? secondEnd : undefined,
   });
 
   const handleSave = async (withGrid: boolean) => {
@@ -381,6 +465,48 @@ export default function ComparePage() {
         ))}
       </div>
 
+      {/* Video play / trim controls */}
+      {mode === 'video' && (firstDuration > 0 || secondDuration > 0) && (
+        <div className="space-y-1.5 border-b border-white/10 bg-slate-900/70 px-3 py-2" style={{ flexShrink: 0 }}>
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={handleRewind}
+              className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-medium text-white/80"
+            >
+              ⏮ 最初へ
+            </button>
+            <button
+              onClick={handlePlayPause}
+              className={`rounded-full px-4 py-1 text-[11px] font-bold text-white ${isPlaying ? 'bg-red-500/80' : 'bg-[#3DC4A8]'}`}
+            >
+              {isPlaying ? '⏸ 停止' : '▶ 再生'}
+            </button>
+          </div>
+          {firstDuration > 0 && (
+            <TrimRow
+              label="1枚目"
+              accent="#3DC4A8"
+              duration={firstDuration}
+              start={firstStart}
+              end={firstEnd}
+              onStartChange={handleFirstStart}
+              onEndChange={handleFirstEnd}
+            />
+          )}
+          {secondDuration > 0 && (
+            <TrimRow
+              label="2枚目"
+              accent="#5BB5E7"
+              duration={secondDuration}
+              start={secondStart}
+              end={secondEnd}
+              onStartChange={handleSecondStart}
+              onEndChange={handleSecondEnd}
+            />
+          )}
+        </div>
+      )}
+
       {/* Compare Frame */}
       <div className="flex flex-1 items-center justify-center overflow-hidden px-1 py-1">
         <div
@@ -427,11 +553,19 @@ export default function ComparePage() {
                 />
               ) : (
                 <video
+                  ref={firstVideoRef}
                   src={displayFirstUrl}
-                  autoPlay
-                  loop
                   muted
                   playsInline
+                  preload="auto"
+                  onLoadedMetadata={(e) => {
+                    const d = e.currentTarget.duration;
+                    if (isFinite(d) && d > 0) {
+                      setFirstDuration(d);
+                      setFirstStart(0);
+                      setFirstEnd(d);
+                    }
+                  }}
                   className="absolute inset-0 h-full w-full object-contain touch-none select-none pointer-events-none"
                   style={{
                     transform: `translate(${firstOffset.x}px, ${firstOffset.y}px) scale(${firstScale})`,
@@ -486,11 +620,19 @@ export default function ComparePage() {
                 />
               ) : (
                 <video
+                  ref={secondVideoRef}
                   src={displaySecondUrl}
-                  autoPlay
-                  loop
                   muted
                   playsInline
+                  preload="auto"
+                  onLoadedMetadata={(e) => {
+                    const d = e.currentTarget.duration;
+                    if (isFinite(d) && d > 0) {
+                      setSecondDuration(d);
+                      setSecondStart(0);
+                      setSecondEnd(d);
+                    }
+                  }}
                   className="absolute inset-0 h-full w-full object-contain touch-none select-none pointer-events-none"
                   style={{
                     transform: `translate(${secondOffset.x}px, ${secondOffset.y}px) scale(${secondScale})`,
@@ -688,6 +830,59 @@ function CellGrid({ color }: { color: 'white' | 'red' }) {
           style={{ top: `${((i + 1) / rows) * 100}%`, height: '0.5px', background: lineColor }}
         />
       ))}
+    </div>
+  );
+}
+
+function TrimRow({
+  label,
+  accent,
+  duration,
+  start,
+  end,
+  onStartChange,
+  onEndChange,
+}: {
+  label: string;
+  accent: string;
+  duration: number;
+  start: number;
+  end: number;
+  onStartChange: (v: number) => void;
+  onEndChange: (v: number) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-[10px]" style={{ color: accent }}>
+        <span className="font-semibold">{label}</span>
+        <span className="text-white/60">
+          {start.toFixed(1)}秒 〜 {end.toFixed(1)}秒（{(end - start).toFixed(1)}秒）
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[9px] text-white/40 w-8">開始</span>
+        <input
+          type="range"
+          min={0}
+          max={duration}
+          step={0.1}
+          value={start}
+          onChange={(e) => onStartChange(parseFloat(e.target.value))}
+          className="flex-1 accent-[#3DC4A8] h-1"
+        />
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[9px] text-white/40 w-8">終了</span>
+        <input
+          type="range"
+          min={0}
+          max={duration}
+          step={0.1}
+          value={end}
+          onChange={(e) => onEndChange(parseFloat(e.target.value))}
+          className="flex-1 accent-[#5BB5E7] h-1"
+        />
+      </div>
     </div>
   );
 }
