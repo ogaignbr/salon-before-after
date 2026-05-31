@@ -100,5 +100,5 @@ export function useCamera() {
     return () => stop();
   }, [stop]);
 
-  return { videoRef, isReady, error, start, stop, capture, switchCamera, facingMode };
+  return { videoRef, streamRef, isReady, error, start, stop, capture, switchCamera, facingMode };
 }

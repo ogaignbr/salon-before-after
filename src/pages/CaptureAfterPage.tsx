@@ -1,18 +1,26 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCamera } from '../hooks/useCamera';
-import { shareOrDownloadImage } from '../lib/imageProcessor';
+import { useVideoRecorder } from '../hooks/useVideoRecorder';
+import { shareOrDownloadImage, shareOrDownloadVideo } from '../lib/imageProcessor';
+
+function formatTime(s: number) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
 
 export default function CaptureAfterPage() {
   const navigate = useNavigate();
-  const { videoRef, isReady, error, start, stop, capture, switchCamera, facingMode } = useCamera();
+  const { videoRef, streamRef, isReady, error, start, stop, capture, switchCamera, facingMode } = useCamera();
+  const { isRecording, elapsedSeconds, recordedBlob, recordedUrl, startRecording, stopRecording, clearRecording } = useVideoRecorder(streamRef.current);
 
   // Before image (picked from device)
   const [beforeUrl, setBeforeUrl] = useState<string | null>(null);
   const [beforeScale, setBeforeScale] = useState(1);
   const [beforeOffset, setBeforeOffset] = useState({ x: 0, y: 0 });
 
-  // After capture
+  // After capture (photo)
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
 
@@ -20,6 +28,9 @@ export default function CaptureAfterPage() {
   type GridMode = 'off' | 'white' | 'red';
   const [gridMode, setGridMode] = useState<GridMode>('white');
   const cycleGrid = () => setGridMode((v) => v === 'off' ? 'white' : v === 'white' ? 'red' : 'off');
+
+  type CaptureMode = 'photo' | 'video';
+  const [mode, setMode] = useState<CaptureMode>('photo');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,7 +62,6 @@ export default function CaptureAfterPage() {
     setBeforeUrl(URL.createObjectURL(file));
     setBeforeScale(1);
     setBeforeOffset({ x: 0, y: 0 });
-    // Reset input so same file can be re-selected
     e.target.value = '';
   };
 
@@ -69,8 +79,9 @@ export default function CaptureAfterPage() {
     setCapturedBlob(null);
     if (capturedUrl) URL.revokeObjectURL(capturedUrl);
     setCapturedUrl(null);
+    clearRecording();
     start();
-  }, [start, capturedUrl]);
+  }, [start, capturedUrl, clearRecording]);
 
   const handleSave = useCallback(async () => {
     if (!capturedBlob) return;
@@ -78,7 +89,23 @@ export default function CaptureAfterPage() {
     await shareOrDownloadImage(capturedBlob, `pitacame_after_${stamp}.jpg`);
   }, [capturedBlob]);
 
+  const handleSaveVideo = useCallback(async () => {
+    if (!recordedBlob) return;
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+    const ext = recordedBlob.type.includes('mp4') ? 'mp4' : 'webm';
+    await shareOrDownloadVideo(recordedBlob, `pitacame_after_video_${stamp}.${ext}`);
+  }, [recordedBlob]);
+
+  const handleToggleRecord = useCallback(() => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  }, [isRecording, startRecording, stopRecording]);
+
   const handleBack = () => {
+    if (isRecording) stopRecording();
     stop();
     navigate('/home');
   };
@@ -141,6 +168,8 @@ export default function CaptureAfterPage() {
     setBeforeOffset({ x: 0, y: 0 });
   };
 
+  const hasAfterPreview = mode === 'photo' ? !!capturedUrl : !!recordedUrl;
+
   return (
     <div className="relative flex flex-col overflow-hidden bg-black" style={{ height: '100dvh' }}>
       {flash && <div className="absolute inset-0 z-50 bg-white" />}
@@ -162,7 +191,7 @@ export default function CaptureAfterPage() {
         </button>
         <span className="text-xs font-semibold tracking-wide">アフターを撮影</span>
         <div className="flex items-center gap-1">
-          {!capturedBlob && (
+          {!hasAfterPreview && !isRecording && (
             <button onClick={switchCamera} className="rounded-lg p-1.5 transition-colors hover:bg-white/10">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -213,9 +242,9 @@ export default function CaptureAfterPage() {
                     style={{
                       backgroundImage:
                         gridMode === 'red'
-                          ? 'linear-gradient(rgba(255,0,0,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(255,0,0,0.35) 1px, transparent 1px)'
-                          : 'linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)',
-                      backgroundSize: '20px 20px',
+                          ? 'linear-gradient(rgba(255,0,0,0.55) 1px, transparent 1px), linear-gradient(90deg, rgba(255,0,0,0.55) 1px, transparent 1px)'
+                          : 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)',
+                      backgroundSize: '40px 40px',
                     }}
                   />
                 )}
@@ -246,8 +275,10 @@ export default function CaptureAfterPage() {
 
           {/* Right side - Camera / Captured */}
           <div className="relative flex-1 overflow-hidden bg-black">
-            {capturedUrl ? (
+            {mode === 'photo' && capturedUrl ? (
               <img src={capturedUrl} alt="アフター" className="absolute inset-0 h-full w-full object-cover" />
+            ) : mode === 'video' && recordedUrl ? (
+              <video src={recordedUrl} className="absolute inset-0 h-full w-full object-cover" controls playsInline />
             ) : (
               <>
                 <video
@@ -264,11 +295,18 @@ export default function CaptureAfterPage() {
                     style={{
                       backgroundImage:
                         gridMode === 'red'
-                          ? 'linear-gradient(rgba(255,0,0,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(255,0,0,0.35) 1px, transparent 1px)'
-                          : 'linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)',
-                      backgroundSize: '20px 20px',
+                          ? 'linear-gradient(rgba(255,0,0,0.55) 1px, transparent 1px), linear-gradient(90deg, rgba(255,0,0,0.55) 1px, transparent 1px)'
+                          : 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)',
+                      backgroundSize: '40px 40px',
                     }}
                   />
+                )}
+                {/* Recording indicator */}
+                {isRecording && (
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 backdrop-blur">
+                    <div className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-xs font-bold text-white">{formatTime(elapsedSeconds)}</span>
+                  </div>
                 )}
                 {error && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-2 text-center text-white">
@@ -284,7 +322,7 @@ export default function CaptureAfterPage() {
       {/* Controls */}
       <div className="relative z-20 bg-gradient-to-t from-black/95 to-black/70 px-3 py-2.5" style={{ flexShrink: 0 }}>
         {/* Zoom controls for before image */}
-        {beforeUrl && !capturedBlob && (
+        {beforeUrl && !hasAfterPreview && !isRecording && (
           <div className="mb-2 flex items-center justify-center gap-2">
             <span className="text-[9px] font-medium text-[#3DC4A8]">ビフォー画像</span>
             <button onClick={() => handleZoom(-0.1)} className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white/70">-</button>
@@ -294,7 +332,7 @@ export default function CaptureAfterPage() {
           </div>
         )}
 
-        {capturedBlob ? (
+        {hasAfterPreview ? (
           <div className="flex items-center justify-center gap-4">
             <button
               onClick={handleRetake}
@@ -303,7 +341,7 @@ export default function CaptureAfterPage() {
               撮り直し
             </button>
             <button
-              onClick={handleSave}
+              onClick={mode === 'photo' ? handleSave : handleSaveVideo}
               className="rounded-full bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:brightness-105 active:scale-[0.97]"
             >
               端末に保存
@@ -311,24 +349,50 @@ export default function CaptureAfterPage() {
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <button
-              onClick={cycleGrid}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                gridMode === 'off' ? 'bg-white/10 text-white/45' : gridMode === 'red' ? 'bg-red-500/70 text-white' : 'bg-[#3DC4A8]/70 text-white'
-              }`}
-            >
-              {gridMode === 'off' ? 'グリッド' : gridMode === 'white' ? 'グリッド(白)' : 'グリッド(赤)'}
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={cycleGrid}
+                disabled={isRecording}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  gridMode === 'off' ? 'bg-white/10 text-white/45' : gridMode === 'red' ? 'bg-red-500/70 text-white' : 'bg-[#3DC4A8]/70 text-white'
+                } disabled:opacity-30`}
+              >
+                {gridMode === 'off' ? 'グリッド' : gridMode === 'white' ? 'グリッド(白)' : 'グリッド(赤)'}
+              </button>
+              <button
+                onClick={() => setMode((m) => m === 'photo' ? 'video' : 'photo')}
+                disabled={isRecording}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  mode === 'video' ? 'bg-red-500/70 text-white' : 'bg-white/10 text-white/60'
+                } disabled:opacity-30`}
+              >
+                {mode === 'photo' ? '写真' : '動画'}
+              </button>
+            </div>
 
-            <button
-              onClick={handleCapture}
-              disabled={!isReady}
-              className="flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-white/60 shadow-lg disabled:opacity-30"
-            >
-              <div className="h-12 w-12 rounded-full bg-white transition active:bg-slate-200" />
-            </button>
+            {mode === 'photo' ? (
+              <button
+                onClick={handleCapture}
+                disabled={!isReady}
+                className="flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-white/60 shadow-lg disabled:opacity-30"
+              >
+                <div className="h-12 w-12 rounded-full bg-white transition active:bg-slate-200" />
+              </button>
+            ) : (
+              <button
+                onClick={handleToggleRecord}
+                disabled={!isReady}
+                className="flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-red-400/80 shadow-lg disabled:opacity-30"
+              >
+                {isRecording ? (
+                  <div className="h-8 w-8 rounded-sm bg-red-500 transition active:bg-red-600" />
+                ) : (
+                  <div className="h-12 w-12 rounded-full bg-red-500 transition active:bg-red-600" />
+                )}
+              </button>
+            )}
 
-            <div className="w-16" />
+            <div className="w-24" />
           </div>
         )}
       </div>

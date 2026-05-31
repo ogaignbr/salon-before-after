@@ -1,8 +1,10 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createComparisonImage, shareOrDownloadImage } from '../lib/imageProcessor';
+import { createComparisonImage, createComparisonVideo, shareOrDownloadImage, shareOrDownloadVideo } from '../lib/imageProcessor';
 import MosaicCanvas from '../components/MosaicCanvas';
 import type { CompareFrameRatio, CompareFrameSettings } from '../types';
+
+type CompareMode = 'photo' | 'video';
 
 const RATIO_OPTIONS: { value: CompareFrameRatio; label: string }[] = [
   { value: '3:4', label: '3:4 縦長' },
@@ -60,9 +62,11 @@ export default function ComparePage() {
   const [secondScale, setSecondScale] = useState(1);
   const [secondOffset, setSecondOffset] = useState({ x: 0, y: 0 });
   const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
   const [editingMosaic, setEditingMosaic] = useState<'first' | 'second' | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [gridMode, setGridMode] = useState<GridMode>('off');
+  const [mode, setMode] = useState<CompareMode>('photo');
 
   // Override blobs for mosaic-edited images
   const [firstBlobOverride, setFirstBlobOverride] = useState<Blob | null>(null);
@@ -70,6 +74,29 @@ export default function ComparePage() {
 
   const effectiveFirstBlob = firstBlobOverride ?? firstBlob;
   const effectiveSecondBlob = secondBlobOverride ?? secondBlob;
+
+  const clearAll = useCallback(() => {
+    if (firstUrl) URL.revokeObjectURL(firstUrl);
+    if (secondUrl) URL.revokeObjectURL(secondUrl);
+    setFirstBlob(null); setFirstUrl(null); setFirstBlobOverride(null);
+    setSecondBlob(null); setSecondUrl(null); setSecondBlobOverride(null);
+    setFirstScale(1); setFirstOffset({ x: 0, y: 0 });
+    setSecondScale(1); setSecondOffset({ x: 0, y: 0 });
+    setSelectedSide(null);
+  }, [firstUrl, secondUrl]);
+
+  const switchMode = useCallback((next: CompareMode) => {
+    if (next === mode) return;
+    clearAll();
+    setMode(next);
+  }, [mode, clearAll]);
+
+  useEffect(() => {
+    return () => {
+      if (firstUrl) URL.revokeObjectURL(firstUrl);
+      if (secondUrl) URL.revokeObjectURL(secondUrl);
+    };
+  }, [firstUrl, secondUrl]);
 
   const handlePickFirst = () => firstInputRef.current?.click();
   const handlePickSecond = () => secondInputRef.current?.click();
@@ -185,30 +212,63 @@ export default function ComparePage() {
   const handleSave = async (withGrid: boolean) => {
     if (!effectiveFirstBlob || !effectiveSecondBlob) return;
     setIsExporting(true);
+    setExportProgress(0);
     try {
       const suffix = withGrid ? 'grid' : 'clean';
       const gridColor = gridMode === 'red' ? 'red' : 'white';
-      const blob = await createComparisonImage(effectiveFirstBlob, effectiveSecondBlob, buildOptions(withGrid, gridColor));
-      await shareOrDownloadImage(blob, `pitacame_compare_${suffix}_${dateStamp()}.jpg`);
+      if (mode === 'photo') {
+        const blob = await createComparisonImage(effectiveFirstBlob, effectiveSecondBlob, buildOptions(withGrid, gridColor));
+        await shareOrDownloadImage(blob, `pitacame_compare_${suffix}_${dateStamp()}.jpg`);
+      } else {
+        const blob = await createComparisonVideo(
+          effectiveFirstBlob, effectiveSecondBlob,
+          buildOptions(withGrid, gridColor),
+          (p) => setExportProgress(p),
+        );
+        const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+        await shareOrDownloadVideo(blob, `pitacame_compare_video_${suffix}_${dateStamp()}.${ext}`);
+      }
     } finally {
       setIsExporting(false);
+      setExportProgress(0);
     }
   };
 
   const handleSaveBoth = async () => {
     if (!effectiveFirstBlob || !effectiveSecondBlob) return;
     setIsExporting(true);
+    setExportProgress(0);
     try {
       const gridColor = gridMode === 'red' ? 'red' : 'white';
-      const [blobClean, blobGrid] = await Promise.all([
-        createComparisonImage(effectiveFirstBlob, effectiveSecondBlob, buildOptions(false)),
-        createComparisonImage(effectiveFirstBlob, effectiveSecondBlob, buildOptions(true, gridColor)),
-      ]);
-      await shareOrDownloadImage(blobClean, `pitacame_compare_clean_${dateStamp()}.jpg`);
-      await new Promise((r) => setTimeout(r, 500));
-      await shareOrDownloadImage(blobGrid, `pitacame_compare_grid_${dateStamp()}.jpg`);
+      if (mode === 'photo') {
+        const [blobClean, blobGrid] = await Promise.all([
+          createComparisonImage(effectiveFirstBlob, effectiveSecondBlob, buildOptions(false)),
+          createComparisonImage(effectiveFirstBlob, effectiveSecondBlob, buildOptions(true, gridColor)),
+        ]);
+        await shareOrDownloadImage(blobClean, `pitacame_compare_clean_${dateStamp()}.jpg`);
+        await new Promise((r) => setTimeout(r, 500));
+        await shareOrDownloadImage(blobGrid, `pitacame_compare_grid_${dateStamp()}.jpg`);
+      } else {
+        // Videos: render sequentially (each requires real-time playback)
+        const blobClean = await createComparisonVideo(
+          effectiveFirstBlob, effectiveSecondBlob,
+          buildOptions(false),
+          (p) => setExportProgress(p / 2),
+        );
+        const blobGrid = await createComparisonVideo(
+          effectiveFirstBlob, effectiveSecondBlob,
+          buildOptions(true, gridColor),
+          (p) => setExportProgress(0.5 + p / 2),
+        );
+        const extClean = blobClean.type.includes('mp4') ? 'mp4' : 'webm';
+        const extGrid = blobGrid.type.includes('mp4') ? 'mp4' : 'webm';
+        await shareOrDownloadVideo(blobClean, `pitacame_compare_video_clean_${dateStamp()}.${extClean}`);
+        await new Promise((r) => setTimeout(r, 500));
+        await shareOrDownloadVideo(blobGrid, `pitacame_compare_video_grid_${dateStamp()}.${extGrid}`);
+      }
     } finally {
       setIsExporting(false);
+      setExportProgress(0);
     }
   };
 
@@ -240,8 +300,8 @@ export default function ComparePage() {
 
   return (
     <div className="flex h-dvh flex-col bg-black text-white">
-      <input ref={firstInputRef} type="file" accept="image/*" className="hidden" onChange={handleFirstFile} />
-      <input ref={secondInputRef} type="file" accept="image/*" className="hidden" onChange={handleSecondFile} />
+      <input ref={firstInputRef} type="file" accept={mode === 'photo' ? 'image/*' : 'video/*'} className="hidden" onChange={handleFirstFile} />
+      <input ref={secondInputRef} type="file" accept={mode === 'photo' ? 'image/*' : 'video/*'} className="hidden" onChange={handleSecondFile} />
 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 bg-slate-900/80 px-3 py-2 backdrop-blur-md" style={{ flexShrink: 0 }}>
@@ -269,6 +329,24 @@ export default function ComparePage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Mode toggle */}
+      <div className="flex items-center justify-center gap-2 bg-slate-900/70 px-3 py-2" style={{ flexShrink: 0 }}>
+        <div className="flex rounded-full bg-white/10 p-0.5">
+          <button
+            onClick={() => switchMode('photo')}
+            className={`rounded-full px-4 py-1 text-[11px] font-semibold transition ${mode === 'photo' ? 'bg-[#3DC4A8] text-white' : 'text-white/60'}`}
+          >
+            写真
+          </button>
+          <button
+            onClick={() => switchMode('video')}
+            className={`rounded-full px-4 py-1 text-[11px] font-semibold transition ${mode === 'video' ? 'bg-red-500/80 text-white' : 'text-white/60'}`}
+          >
+            動画
           </button>
         </div>
       </div>
@@ -336,16 +414,31 @@ export default function ComparePage() {
             onTouchEnd={displayFirstUrl ? handleTouchEnd : undefined}
           >
             {displayFirstUrl ? (
-              <img
-                src={displayFirstUrl}
-                alt=""
-                draggable={false}
-                className="absolute inset-0 h-full w-full object-contain touch-none select-none pointer-events-none"
-                style={{
-                  transform: `translate(${firstOffset.x}px, ${firstOffset.y}px) scale(${firstScale})`,
-                  transformOrigin: 'center',
-                }}
-              />
+              mode === 'photo' ? (
+                <img
+                  src={displayFirstUrl}
+                  alt=""
+                  draggable={false}
+                  className="absolute inset-0 h-full w-full object-contain touch-none select-none pointer-events-none"
+                  style={{
+                    transform: `translate(${firstOffset.x}px, ${firstOffset.y}px) scale(${firstScale})`,
+                    transformOrigin: 'center',
+                  }}
+                />
+              ) : (
+                <video
+                  src={displayFirstUrl}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="absolute inset-0 h-full w-full object-contain touch-none select-none pointer-events-none"
+                  style={{
+                    transform: `translate(${firstOffset.x}px, ${firstOffset.y}px) scale(${firstScale})`,
+                    transformOrigin: 'center',
+                  }}
+                />
+              )
             ) : (
               <button
                 onClick={handlePickFirst}
@@ -354,7 +447,7 @@ export default function ComparePage() {
                 <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
                 </svg>
-                <span className="text-[11px] font-medium">ビフォー画像を選択</span>
+                <span className="text-[11px] font-medium">{mode === 'photo' ? 'ビフォー画像を選択' : 'ビフォー動画を選択'}</span>
               </button>
             )}
             {displayFirstUrl && (
@@ -380,16 +473,31 @@ export default function ComparePage() {
             onTouchEnd={displaySecondUrl ? handleTouchEnd : undefined}
           >
             {displaySecondUrl ? (
-              <img
-                src={displaySecondUrl}
-                alt=""
-                draggable={false}
-                className="absolute inset-0 h-full w-full object-contain touch-none select-none pointer-events-none"
-                style={{
-                  transform: `translate(${secondOffset.x}px, ${secondOffset.y}px) scale(${secondScale})`,
-                  transformOrigin: 'center',
-                }}
-              />
+              mode === 'photo' ? (
+                <img
+                  src={displaySecondUrl}
+                  alt=""
+                  draggable={false}
+                  className="absolute inset-0 h-full w-full object-contain touch-none select-none pointer-events-none"
+                  style={{
+                    transform: `translate(${secondOffset.x}px, ${secondOffset.y}px) scale(${secondScale})`,
+                    transformOrigin: 'center',
+                  }}
+                />
+              ) : (
+                <video
+                  src={displaySecondUrl}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="absolute inset-0 h-full w-full object-contain touch-none select-none pointer-events-none"
+                  style={{
+                    transform: `translate(${secondOffset.x}px, ${secondOffset.y}px) scale(${secondScale})`,
+                    transformOrigin: 'center',
+                  }}
+                />
+              )
             ) : (
               <button
                 onClick={handlePickSecond}
@@ -398,7 +506,7 @@ export default function ComparePage() {
                 <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
                 </svg>
-                <span className="text-[11px] font-medium">アフター画像を選択</span>
+                <span className="text-[11px] font-medium">{mode === 'photo' ? 'アフター画像を選択' : 'アフター動画を選択'}</span>
               </button>
             )}
             {displaySecondUrl && (
@@ -477,22 +585,24 @@ export default function ComparePage() {
             </>
           )}
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => effectiveFirstBlob && setEditingMosaic('first')}
-              disabled={!effectiveFirstBlob}
-              className="flex-1 rounded-lg bg-white/10 py-2 text-xs font-medium text-white/80 transition hover:bg-white/20 disabled:opacity-30"
-            >
-              1枚目 モザイク
-            </button>
-            <button
-              onClick={() => effectiveSecondBlob && setEditingMosaic('second')}
-              disabled={!effectiveSecondBlob}
-              className="flex-1 rounded-lg bg-white/10 py-2 text-xs font-medium text-white/80 transition hover:bg-white/20 disabled:opacity-30"
-            >
-              2枚目 モザイク
-            </button>
-          </div>
+          {mode === 'photo' && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => effectiveFirstBlob && setEditingMosaic('first')}
+                disabled={!effectiveFirstBlob}
+                className="flex-1 rounded-lg bg-white/10 py-2 text-xs font-medium text-white/80 transition hover:bg-white/20 disabled:opacity-30"
+              >
+                1枚目 モザイク
+              </button>
+              <button
+                onClick={() => effectiveSecondBlob && setEditingMosaic('second')}
+                disabled={!effectiveSecondBlob}
+                className="flex-1 rounded-lg bg-white/10 py-2 text-xs font-medium text-white/80 transition hover:bg-white/20 disabled:opacity-30"
+              >
+                2枚目 モザイク
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -501,7 +611,7 @@ export default function ComparePage() {
         {(displayFirstUrl || displaySecondUrl) && (
           <div className="mb-2 flex items-center justify-center gap-3">
             <span className="text-[10px] text-white/50">
-              {selectedSide === 'first' ? '1枚目 選択中' : selectedSide === 'second' ? '2枚目 選択中' : '画像をタップして選択'}
+              {selectedSide === 'first' ? '1枚目 選択中' : selectedSide === 'second' ? '2枚目 選択中' : (mode === 'photo' ? '画像をタップして選択' : '動画をタップして選択')}
             </span>
             <button
               onClick={() => handleZoom(-0.1)}
@@ -547,7 +657,11 @@ export default function ComparePage() {
           disabled={isExporting || !canExport}
           className="mt-1.5 w-full rounded-full border border-white/20 bg-white/10 py-2.5 text-xs font-semibold text-white/80 transition hover:bg-white/20 active:scale-[0.97] disabled:opacity-50"
         >
-          {isExporting ? '出力中...' : '両方まとめて保存'}
+          {isExporting
+            ? mode === 'video' && exportProgress > 0
+              ? `動画出力中... ${Math.round(exportProgress * 100)}%`
+              : '出力中...'
+            : '両方まとめて保存'}
         </button>
       </div>
     </div>
@@ -555,9 +669,9 @@ export default function ComparePage() {
 }
 
 function CellGrid({ color }: { color: 'white' | 'red' }) {
-  const cols = 6;
-  const rows = 20;
-  const lineColor = color === 'red' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.35)';
+  const cols = 3;
+  const rows = 10;
+  const lineColor = color === 'red' ? 'rgba(239,68,68,0.7)' : 'rgba(255,255,255,0.55)';
   return (
     <div className="absolute inset-0 pointer-events-none z-10">
       {Array.from({ length: cols - 1 }, (_, i) => (
