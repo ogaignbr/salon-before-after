@@ -63,12 +63,28 @@ export function useCamera() {
     setIsReady(false);
   }, []);
 
+  const attachVideo = useCallback(async () => {
+    const video = videoRef.current;
+    const currentStream = streamRef.current;
+    if (!video || !currentStream) return;
+    if (video.srcObject !== currentStream) {
+      video.srcObject = currentStream;
+    }
+    try {
+      await video.play();
+      setIsReady(true);
+    } catch {
+      // User activation or browser timing can delay play; keep stream alive.
+    }
+  }, []);
+
   const capture = useCallback((): Blob | null => {
     const video = videoRef.current;
     if (!video) return null;
 
     const vw = video.videoWidth;
     const vh = video.videoHeight;
+    if (!vw || !vh) return null;
 
     // クロップせずカメラの元映像をそのままキャプチャ（距離感を維持）
     const canvas = document.createElement('canvas');
@@ -103,5 +119,5 @@ export function useCamera() {
     return () => stop();
   }, [stop]);
 
-  return { videoRef, streamRef, stream, isReady, error, start, stop, capture, switchCamera, facingMode };
+  return { videoRef, streamRef, stream, isReady, error, start, stop, attachVideo, capture, switchCamera, facingMode };
 }

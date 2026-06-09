@@ -822,8 +822,8 @@ export default function ComparePage() {
 }
 
 function CellGrid({ color }: { color: 'white' | 'red' }) {
-  const cols = 3;
-  const rows = 10;
+  const cols = 4;
+  const rows = 6;
   const lineColor = color === 'red' ? 'rgba(239,68,68,0.7)' : 'rgba(255,255,255,0.55)';
   return (
     <div className="absolute inset-0 pointer-events-none z-10">

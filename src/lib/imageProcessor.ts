@@ -163,16 +163,19 @@ export async function createComparisonImage(
       ctx.beginPath();
       ctx.rect(area.x, area.y, area.w, area.h);
       ctx.clip();
-      const gridSize = 80;
+      const cols = 4;
+      const rows = 6;
       ctx.strokeStyle = options.gridColor === 'red' ? 'rgba(239,68,68,0.7)' : 'rgba(255,255,255,0.45)';
       ctx.lineWidth = 1;
-      for (let x = area.x + gridSize; x < area.x + area.w; x += gridSize) {
+      for (let i = 1; i < cols; i++) {
+        const x = area.x + (area.w * i) / cols;
         ctx.beginPath();
         ctx.moveTo(x, area.y);
         ctx.lineTo(x, area.y + area.h);
         ctx.stroke();
       }
-      for (let y = area.y + gridSize; y < area.y + area.h; y += gridSize) {
+      for (let i = 1; i < rows; i++) {
+        const y = area.y + (area.h * i) / rows;
         ctx.beginPath();
         ctx.moveTo(area.x, y);
         ctx.lineTo(area.x + area.w, y);
@@ -262,8 +265,13 @@ export async function shareOrDownloadImage(blob: Blob, filename: string) {
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
   a.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  window.setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 1000);
 }
 
 export async function createComparisonVideo(
@@ -388,16 +396,19 @@ export async function createComparisonVideo(
     ctx.beginPath();
     ctx.rect(area.x, area.y, area.w, area.h);
     ctx.clip();
-    const gridSize = 80;
+    const cols = 4;
+    const rows = 6;
     ctx.strokeStyle = options.gridColor === 'red' ? 'rgba(239,68,68,0.7)' : 'rgba(255,255,255,0.45)';
     ctx.lineWidth = 1;
-    for (let x = area.x + gridSize; x < area.x + area.w; x += gridSize) {
+    for (let i = 1; i < cols; i++) {
+      const x = area.x + (area.w * i) / cols;
       ctx.beginPath();
       ctx.moveTo(x, area.y);
       ctx.lineTo(x, area.y + area.h);
       ctx.stroke();
     }
-    for (let y = area.y + gridSize; y < area.y + area.h; y += gridSize) {
+    for (let i = 1; i < rows; i++) {
+      const y = area.y + (area.h * i) / rows;
       ctx.beginPath();
       ctx.moveTo(area.x, y);
       ctx.lineTo(area.x + area.w, y);
@@ -513,8 +524,13 @@ export async function shareOrDownloadVideo(blob: Blob, filename: string) {
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
   a.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  window.setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 1000);
 }
 
 export async function cropTo3x4(blob: Blob, targetWidth = 1080): Promise<Blob> {

@@ -143,16 +143,7 @@ export default function CaptureBeforePage() {
                 muted
               />
               {gridMode !== 'off' && (
-                <div
-                  className="absolute inset-0 pointer-events-none z-10"
-                  style={{
-                    backgroundImage:
-                      gridMode === 'red'
-                        ? 'linear-gradient(rgba(255,0,0,0.55) 1px, transparent 1px), linear-gradient(90deg, rgba(255,0,0,0.55) 1px, transparent 1px)'
-                        : 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)',
-                    backgroundSize: '40px 40px',
-                  }}
-                />
+                <AlignedGrid color={gridMode} />
               )}
               <CenterGuide />
               {/* Recording indicator */}
@@ -238,6 +229,30 @@ export default function CaptureBeforePage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function AlignedGrid({ color }: { color: 'white' | 'red' }) {
+  const cols = 4;
+  const rows = 6;
+  const lineColor = color === 'red' ? 'rgba(239,68,68,0.52)' : 'rgba(255,255,255,0.42)';
+  return (
+    <div className="pointer-events-none absolute inset-0 z-10">
+      {Array.from({ length: cols - 1 }, (_, i) => (
+        <div
+          key={`v${i}`}
+          className="absolute top-0 bottom-0"
+          style={{ left: `${((i + 1) / cols) * 100}%`, width: '1px', background: lineColor }}
+        />
+      ))}
+      {Array.from({ length: rows - 1 }, (_, i) => (
+        <div
+          key={`h${i}`}
+          className="absolute left-0 right-0"
+          style={{ top: `${((i + 1) / rows) * 100}%`, height: '1px', background: lineColor }}
+        />
+      ))}
     </div>
   );
 }

@@ -42,7 +42,7 @@ export default function CaptureAfterPage() {
   const isVideo = plan.mediaType === 'video';
   const isGhost = plan.style === 'ghost' && !isVideo;
 
-  const { videoRef, stream, isReady, error, start, stop, capture, switchCamera, facingMode } = useCamera();
+  const { videoRef, stream, isReady, error, start, stop, attachVideo, capture, switchCamera, facingMode } = useCamera();
   const { isRecording, elapsedSeconds, recordedBlob, recordedUrl, startRecording, stopRecording, clearRecording } = useVideoRecorder(stream);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +86,12 @@ export default function CaptureAfterPage() {
   }, [start, stop]);
 
   useEffect(() => {
+    if (!hasBefore || hasAfter) return;
+    if (stream) void attachVideo();
+    else void start();
+  }, [attachVideo, hasAfter, hasBefore, start, stream]);
+
+  useEffect(() => {
     return () => {
       if (beforeUrl) URL.revokeObjectURL(beforeUrl);
       if (afterUrl) URL.revokeObjectURL(afterUrl);
@@ -103,6 +109,7 @@ export default function CaptureAfterPage() {
     setBeforeBlob(file);
     setBeforeUrl(URL.createObjectURL(file));
     setBeforeTransform({ scale: 1, x: 0, y: 0 });
+    setSelectedLayer('before');
     setMessage('');
     e.target.value = '';
   };
@@ -113,7 +120,11 @@ export default function CaptureAfterPage() {
       return;
     }
     const blob = capture();
-    if (!blob) return;
+    if (!blob) {
+      setMessage('カメラ映像を読み込んでいます。少し待ってから撮影してください');
+      void attachVideo();
+      return;
+    }
     setFlash(true);
     window.setTimeout(() => setFlash(false), 150);
     if (afterUrl) URL.revokeObjectURL(afterUrl);
@@ -139,6 +150,7 @@ export default function CaptureAfterPage() {
     setAfterBlob(null);
     setAfterUrl(null);
     setAfterTransform({ scale: 1, x: 0, y: 0 });
+    setSelectedLayer('before');
     clearRecording();
     setMessage('');
     start();
@@ -212,9 +224,13 @@ export default function CaptureAfterPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
+    setMessage('');
     try {
       if (isVideo) await saveVideo();
       else await savePhoto();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : '不明なエラー';
+      setMessage(`保存に失敗しました: ${detail}`);
     } finally {
       setIsSaving(false);
     }
@@ -420,7 +436,24 @@ export default function CaptureAfterPage() {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            {hasBefore && (
+              <div className="flex items-center justify-center gap-2">
+                <div className="flex rounded-full bg-white/10 p-0.5">
+                  <button
+                    onClick={() => setSelectedLayer('before')}
+                    className="rounded-full bg-red-500 px-3 py-1 text-[10px] font-bold text-white"
+                  >
+                    ビフォー
+                  </button>
+                </div>
+                <button onClick={() => zoomSelected(-0.1)} className="rounded-full bg-white/10 px-3 py-1 text-xs font-black">-</button>
+                <span className="w-9 text-center text-[10px] text-white/60">{Math.round(beforeTransform.scale * 100)}%</span>
+                <button onClick={() => zoomSelected(0.1)} className="rounded-full bg-white/10 px-3 py-1 text-xs font-black">+</button>
+                <button onClick={resetSelected} className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-white/70">リセット</button>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <button
                 onClick={cycleGrid}
@@ -462,6 +495,7 @@ export default function CaptureAfterPage() {
             )}
 
             <div className="w-24" />
+            </div>
           </div>
         )}
       </div>
@@ -489,17 +523,26 @@ function StepBar({ activeStep }: { activeStep: number }) {
 
 function GridLayer({ gridMode }: { gridMode: GridMode }) {
   if (gridMode === 'off') return null;
+  const cols = 4;
+  const rows = 6;
+  const lineColor = gridMode === 'red' ? 'rgba(239,68,68,0.52)' : 'rgba(255,255,255,0.42)';
   return (
-    <div
-      className="pointer-events-none absolute inset-0 z-20"
-      style={{
-        backgroundImage:
-          gridMode === 'red'
-            ? 'linear-gradient(rgba(239,68,68,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(239,68,68,0.5) 1px, transparent 1px)'
-            : 'linear-gradient(rgba(255,255,255,0.42) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.42) 1px, transparent 1px)',
-        backgroundSize: '40px 40px',
-      }}
-    />
+    <div className="pointer-events-none absolute inset-0 z-20">
+      {Array.from({ length: cols - 1 }, (_, i) => (
+        <div
+          key={`v${i}`}
+          className="absolute top-0 bottom-0"
+          style={{ left: `${((i + 1) / cols) * 100}%`, width: '1px', background: lineColor }}
+        />
+      ))}
+      {Array.from({ length: rows - 1 }, (_, i) => (
+        <div
+          key={`h${i}`}
+          className="absolute left-0 right-0"
+          style={{ top: `${((i + 1) / rows) * 100}%`, height: '1px', background: lineColor }}
+        />
+      ))}
+    </div>
   );
 }
 
