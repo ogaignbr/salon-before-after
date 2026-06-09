@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createComparisonImage, createComparisonVideo, shareOrDownloadImage, shareOrDownloadVideo } from '../lib/imageProcessor';
 import MosaicCanvas from '../components/MosaicCanvas';
+import CenterGuide from '../components/CenterGuide';
 import type { CompareFrameRatio, CompareFrameSettings } from '../types';
 
 type CompareMode = 'photo' | 'video';
@@ -584,6 +585,7 @@ export default function ComparePage() {
               </button>
             )}
             {gridMode !== 'off' && displayFirstUrl && <CellGrid color={gridMode} />}
+            {displayFirstUrl && <CenterGuide />}
           </div>
 
           {/* Second image */}
@@ -651,6 +653,7 @@ export default function ComparePage() {
               </button>
             )}
             {gridMode !== 'off' && displaySecondUrl && <CellGrid color={gridMode} />}
+            {displaySecondUrl && <CenterGuide />}
           </div>
         </div>
       </div>

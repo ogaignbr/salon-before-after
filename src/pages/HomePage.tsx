@@ -1,53 +1,128 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import type { CaptureOutputKind, CapturePlan, CapturePurpose } from '../types';
 import pitacameLogo from '../../ぴたカメロゴ.png';
+
+type PurposeOption = {
+  id: CapturePurpose;
+  label: string;
+  short: string;
+  icon: string;
+  style: CapturePlan['style'];
+  mediaType: CapturePlan['mediaType'];
+  defaultOutput: CaptureOutputKind;
+};
+
+const PURPOSES: PurposeOption[] = [
+  {
+    id: 'face',
+    label: '顔全体',
+    short: 'ゴースト',
+    style: 'ghost',
+    mediaType: 'photo',
+    defaultOutput: 'both',
+    icon: 'M15.75 9A3.75 3.75 0 1112 5.25 3.75 3.75 0 0115.75 9z M5.25 20.25a6.75 6.75 0 0113.5 0',
+  },
+  {
+    id: 'skin',
+    label: '肌',
+    short: 'ゴースト',
+    style: 'ghost',
+    mediaType: 'photo',
+    defaultOutput: 'both',
+    icon: 'M12 3.75c3.75 4.25 5.25 7.25 5.25 10A5.25 5.25 0 116.75 13.75c0-2.75 1.5-5.75 5.25-10z',
+  },
+  {
+    id: 'eyes',
+    label: '目元',
+    short: 'ゴースト',
+    style: 'ghost',
+    mediaType: 'photo',
+    defaultOutput: 'both',
+    icon: 'M2.25 12s3.75-5.25 9.75-5.25S21.75 12 21.75 12 18 17.25 12 17.25 2.25 12 2.25 12z M12 9.75a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5z',
+  },
+  {
+    id: 'mouth',
+    label: '歯・口元',
+    short: 'ゴースト',
+    style: 'ghost',
+    mediaType: 'photo',
+    defaultOutput: 'both',
+    icon: 'M6 13.5c1.5 2.25 3.5 3.25 6 3.25s4.5-1 6-3.25M5.25 10.5c2.25-1.5 4.5-2.25 6.75-2.25s4.5.75 6.75 2.25',
+  },
+  {
+    id: 'body',
+    label: '全身・体',
+    short: '左右比較',
+    style: 'compare',
+    mediaType: 'photo',
+    defaultOutput: 'side-by-side',
+    icon: 'M12 3.75a2.25 2.25 0 110 4.5 2.25 2.25 0 010-4.5z M9.75 21l.75-6-2.25-3.75m6 9.75l-.75-6 2.25-3.75M8.25 10.5h7.5',
+  },
+  {
+    id: 'product',
+    label: '商品・その他',
+    short: '左右比較',
+    style: 'compare',
+    mediaType: 'photo',
+    defaultOutput: 'side-by-side',
+    icon: 'M3.75 7.5L12 3l8.25 4.5M4.5 7.5V18L12 22.5 19.5 18V7.5M12 12l7.5-4.5M12 12L4.5 7.5M12 12v10.5',
+  },
+  {
+    id: 'video',
+    label: '動画比較',
+    short: '左右比較',
+    style: 'compare',
+    mediaType: 'video',
+    defaultOutput: 'side-by-side',
+    icon: 'M4.5 6.75A2.25 2.25 0 016.75 4.5h7.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25h-7.5A2.25 2.25 0 014.5 17.25V6.75z M16.5 10.5l3.75-2.25v7.5L16.5 13.5',
+  },
+];
+
+const OUTPUTS: { id: CaptureOutputKind; label: string; icon: string; photoOnly?: boolean }[] = [
+  { id: 'side-by-side', label: '左右で見せる', icon: 'M4.5 5.25h6v13.5h-6V5.25z M13.5 5.25h6v13.5h-6V5.25z' },
+  { id: 'vertical', label: '上下で見せる', icon: 'M5.25 4.5h13.5v6H5.25v-6z M5.25 13.5h13.5v6H5.25v-6z' },
+  { id: 'overlay', label: '重ねて見せる', icon: 'M8.25 6.75h9v9h-9v-9z M5.25 9.75h9v9h-9v-9z', photoOnly: true },
+  { id: 'both', label: '左右 + 重ね', icon: 'M4.5 5.25h5.25v13.5H4.5V5.25z M11.25 5.25h5.25v5.25h-5.25V5.25z M11.25 12.75h5.25v6h-5.25v-6z', photoOnly: true },
+];
 
 export default function HomePage() {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
-  const useCases = [
-    {
-      label: '美容',
-      icon: 'M9 3.75a.75.75 0 01.75.75v3.084a3.75 3.75 0 012.277 3.44 3.75 3.75 0 01-2.777 3.615V18a.75.75 0 01-1.5 0v-3.111A3.75 3.75 0 015 11.024a3.75 3.75 0 012.25-3.44V4.5A.75.75 0 018 3.75h1zM15.75 6a.75.75 0 01.75.75v1.69a2.25 2.25 0 011.5 2.12 2.25 2.25 0 01-1.5 2.12v4.57a.75.75 0 01-1.5 0v-4.57a2.25 2.25 0 01-1.5-2.12 2.25 2.25 0 011.5-2.12V6.75a.75.75 0 01.75-.75z',
-    },
-    {
-      label: 'フード',
-      icon: 'M7.5 2.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zm3 0a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zm3 0a.75.75 0 01.75.75v6A3.75 3.75 0 0116.5 12.3V21a.75.75 0 01-1.5 0v-8.7a3.75 3.75 0 01-2.25-3.3V3a.75.75 0 01.75-.75zM5.25 10.5h6',
-    },
-    {
-      label: '商品撮影',
-      icon: 'M3.75 7.5L12 3l8.25 4.5M4.5 7.5V18L12 22.5 19.5 18V7.5M12 12l7.5-4.5M12 12L4.5 7.5M12 12v10.5',
-    },
-    {
-      label: '作業報告',
-      icon: 'M7.5 3.75h9A2.25 2.25 0 0118.75 6v13.5A2.25 2.25 0 0116.5 21.75h-9A2.25 2.25 0 015.25 19.5V6A2.25 2.25 0 017.5 3.75zm1.5 4.5h6m-6 3h6m-6 3h4.5',
-    },
-    {
-      label: '作品記録',
-      icon: 'M4.5 7.5A2.25 2.25 0 016.75 5.25h10.5A2.25 2.25 0 0119.5 7.5v9A2.25 2.25 0 0117.25 18.75H6.75A2.25 2.25 0 014.5 16.5v-9zm2.25 7.125l2.25-2.25a1.5 1.5 0 012.122 0l1.128 1.128a1.5 1.5 0 002.122 0l1.878-1.878M15 9.75h.008v.008H15V9.75z',
-    },
-    {
-      label: '成長・観察',
-      icon: 'M4.5 16.5l4.5-4.5 3 3 7.5-7.5M15 7.5h4.5V12',
-    },
-  ];
+  const [purposeId, setPurposeId] = useState<CapturePurpose>('face');
+  const selectedPurpose = PURPOSES.find((p) => p.id === purposeId) ?? PURPOSES[0];
+  const [outputKind, setOutputKind] = useState<CaptureOutputKind>(selectedPurpose.defaultOutput);
+
+  const availableOutputs = useMemo(() => {
+    if (selectedPurpose.mediaType === 'video') return OUTPUTS.filter((o) => o.id === 'side-by-side');
+    return OUTPUTS;
+  }, [selectedPurpose.mediaType]);
+
+  const selectPurpose = (option: PurposeOption) => {
+    setPurposeId(option.id);
+    setOutputKind(option.defaultOutput);
+  };
+
+  const startCapture = () => {
+    const plan: CapturePlan = {
+      purpose: selectedPurpose.id,
+      style: selectedPurpose.style,
+      mediaType: selectedPurpose.mediaType,
+      outputKind,
+      title: selectedPurpose.label,
+      beforeLabel: selectedPurpose.mediaType === 'video' ? 'ビフォー動画' : 'ビフォー画像',
+      afterLabel: selectedPurpose.mediaType === 'video' ? 'アフター動画' : 'アフター写真',
+    };
+    navigate('/capture-after', { state: { plan } });
+  };
 
   return (
     <div className="relative min-h-dvh overflow-hidden bg-[linear-gradient(160deg,#F0FBF8_0%,#EDF7FB_48%,#EAF5FB_100%)] text-[#1B3A5C] dark:bg-[linear-gradient(160deg,#060913_0%,#0b1020_45%,#111827_100%)] dark:text-slate-100">
-      <div className="pointer-events-none absolute inset-0">
-        <span className="bg-ornament bg-ornament-circle left-[7%] top-[10%]" />
-        <span className="bg-ornament bg-ornament-square right-[11%] top-[17%]" />
-        <span className="bg-ornament bg-ornament-triangle left-[18%] top-[44%]" />
-        <span className="bg-ornament bg-ornament-star right-[8%] top-[52%]" />
-        <span className="bg-ornament bg-ornament-line left-[12%] bottom-[20%]" />
-        <span className="bg-ornament bg-ornament-line right-[16%] bottom-[15%]" />
-      </div>
-
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-[430px] flex-col px-5 pb-6 pt-4">
-        <div className="mb-6 flex items-center justify-between rounded-[16px] border border-[#A8DDE5]/30 bg-[rgba(255,255,255,0.92)] px-4 py-2.5 shadow-[0_12px_32px_rgba(60,140,170,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_14px_38px_-28px_rgba(18,32,77,0.9)]">
-          <p className="max-w-[210px] truncate text-[11px] font-medium text-[#5B7689] dark:text-slate-400">{user?.email ?? '----'}</p>
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-[430px] flex-col px-5 pb-5 pt-4">
+        <div className="mb-4 flex items-center justify-between rounded-[12px] border border-[#A8DDE5]/30 bg-white/90 px-4 py-2.5 shadow-[0_10px_26px_rgba(60,140,170,0.10)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45">
+          <p className="max-w-[220px] truncate text-[11px] font-medium text-[#5B7689] dark:text-slate-400">{user?.email ?? '----'}</p>
           <button
             onClick={async () => {
               if (signingOut) return;
@@ -56,87 +131,91 @@ export default function HomePage() {
               navigate('/', { replace: true });
             }}
             disabled={signingOut}
-            className="text-[11px] font-semibold text-[#5B7689] transition-colors hover:text-[#1B3A5C] dark:text-slate-300 dark:hover:text-slate-100"
+            className="text-[11px] font-semibold text-[#5B7689] hover:text-[#1B3A5C] dark:text-slate-300 dark:hover:text-slate-100"
           >
             {signingOut ? 'ログアウト中...' : 'ログアウト'}
           </button>
         </div>
 
-        <div className="mb-8 mt-3 text-center animate-slide-up">
-          <div className="mx-auto mb-4 rounded-[20px] border border-[#A8DDE5]/35 bg-[rgba(255,255,255,0.94)] p-3 shadow-[0_12px_32px_rgba(60,140,170,0.12)] backdrop-blur-xl dark:border-cyan-300/15 dark:bg-slate-900/62 dark:shadow-[0_25px_45px_-30px_rgba(120,220,210,0.55)]">
-            <img
-              src={pitacameLogo}
-              alt="ぴたカメロゴ"
-              className="mx-auto h-auto w-full max-w-[240px] rounded-[10px]"
-            />
+        <div className="mb-4 flex items-center gap-3">
+          <img src={pitacameLogo} alt="ぴたカメ" className="h-14 w-14 rounded-[12px] object-cover shadow-sm" />
+          <div>
+            <h1 className="text-xl font-black">何を撮りますか？</h1>
+            <p className="text-xs font-medium text-[#5B7689] dark:text-slate-400">目的を選ぶと、撮影方法を自動で整えます。</p>
           </div>
-          <p className="mt-1 text-[14px] font-medium text-[#5B7689] dark:text-slate-400">連続撮影して比較できるカメラ</p>
         </div>
 
-        <div className="space-y-3 animate-slide-up" style={{ animationDelay: '0.08s' }}>
+        <section className="space-y-2">
+          <div className="grid grid-cols-2 gap-2.5">
+            {PURPOSES.map((option) => {
+              const active = option.id === selectedPurpose.id;
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => selectPurpose(option)}
+                  className={`relative flex min-h-[86px] flex-col items-start justify-between rounded-[12px] border p-3 text-left shadow-sm transition active:scale-[0.99] ${
+                    active
+                      ? 'border-red-400 bg-white ring-2 ring-red-400/70 dark:border-red-400 dark:bg-slate-900'
+                      : 'border-[#A8DDE5]/35 bg-white/88 hover:border-[#5BB5E7] dark:border-white/10 dark:bg-slate-900/45'
+                  }`}
+                >
+                  <svg className={`h-7 w-7 ${option.mediaType === 'video' ? 'text-red-500' : 'text-[#3DC4A8]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d={option.icon} />
+                  </svg>
+                  <div>
+                    <div className="text-sm font-black">{option.label}</div>
+                    <div className="mt-0.5 text-[10px] font-bold text-[#5B7689] dark:text-slate-400">{option.short}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="mt-5">
+          <h2 className="mb-2 text-sm font-black">完成イメージ</h2>
+          <div className="grid grid-cols-2 gap-2.5">
+            {availableOutputs.map((option) => {
+              const active = option.id === outputKind;
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => setOutputKind(option.id)}
+                  className={`flex min-h-[70px] items-center gap-2 rounded-[12px] border px-3 text-left transition active:scale-[0.99] ${
+                    active
+                      ? 'border-red-400 bg-white ring-2 ring-red-400/70 dark:bg-slate-900'
+                      : 'border-[#A8DDE5]/35 bg-white/82 dark:border-white/10 dark:bg-slate-900/45'
+                  }`}
+                >
+                  <svg className="h-7 w-7 shrink-0 text-[#5BB5E7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d={option.icon} />
+                  </svg>
+                  <span className="text-xs font-black leading-tight">{option.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="mt-auto pt-5">
           <button
-            onClick={() => navigate('/capture-before')}
-            className="animate-subtle-pulse flex w-full items-center justify-center gap-2.5 rounded-[12px] border border-[#5BB5E7]/30 bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] px-4 py-4 text-[18px] font-bold text-white shadow-[0_8px_18px_rgba(70,160,200,0.24)] transition-all hover:brightness-105 active:scale-[0.985]"
+            onClick={startCapture}
+            className="sheen-wrap flex w-full items-center justify-center gap-2 rounded-[12px] border border-[#5BB5E7]/30 bg-[linear-gradient(135deg,#3DC4A8_0%,#48B8CB_48%,#5BB5E7_100%)] px-4 py-4 text-lg font-black text-white shadow-[0_8px_18px_rgba(70,160,200,0.24)] active:scale-[0.985]"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 9a2 2 0 012-2h1.3a2 2 0 001.6-.8l.42-.56A2 2 0 0111.12 5h1.76a2 2 0 011.8 1.12l.42.56a2 2 0 001.6.8H18a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2V9z" />
-              <circle cx="12" cy="12.5" r="2.8" />
+            撮影をはじめる
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
             </svg>
-            ビフォーを撮影
-          </button>
-          <button
-            onClick={() => navigate('/capture-after')}
-            className="flex w-full items-center justify-center gap-2.5 rounded-[12px] border border-[#5BB5E7]/30 bg-[linear-gradient(135deg,#48B8CB_0%,#5BB5E7_100%)] px-4 py-4 text-[18px] font-bold text-white shadow-[0_8px_18px_rgba(70,160,200,0.24)] transition-all hover:brightness-105 active:scale-[0.985]"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 9a2 2 0 012-2h1.3a2 2 0 001.6-.8l.42-.56A2 2 0 0111.12 5h1.76a2 2 0 011.8 1.12l.42.56a2 2 0 001.6.8H18a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2V9z" />
-              <circle cx="12" cy="12.5" r="2.8" />
-            </svg>
-            アフターを撮影
           </button>
           <button
             onClick={() => navigate('/compare')}
-            className="flex w-full items-center justify-center gap-2.5 rounded-[12px] border border-[#A8DDE5]/30 bg-[rgba(255,255,255,0.92)] px-4 py-4 text-[18px] font-bold text-[#1B3A5C] shadow-[0_8px_18px_rgba(60,140,170,0.12)] transition-all hover:brightness-105 active:scale-[0.985] dark:border-white/10 dark:bg-slate-900/45 dark:text-slate-100"
+            className="mt-2 w-full rounded-[12px] border border-[#A8DDE5]/35 bg-white/80 py-3 text-sm font-bold text-[#1B3A5C] dark:border-white/10 dark:bg-slate-900/45 dark:text-slate-100"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
-            </svg>
-            ビフォーアフターを並べる
+            既存素材を並べる
           </button>
-        </div>
-
-        <div className="mt-7 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          <div className="grid grid-cols-3 gap-2.5">
-            {useCases.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-[16px] border border-[#A8DDE5]/30 bg-[rgba(255,255,255,0.92)] px-2.5 py-3 text-center shadow-[0_10px_28px_rgba(60,140,170,0.10)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/45 dark:shadow-[0_16px_32px_-26px_rgba(40,58,120,0.8)]"
-              >
-                <svg
-                  className="mx-auto mb-1.5 h-5 w-5 text-[#3DC4A8] dark:text-cyan-300"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.7}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-                </svg>
-                <span className="text-[11px] font-semibold tracking-[0.02em] text-[#1B3A5C] dark:text-slate-300">{item.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-auto pt-8 text-center animate-fade-in" style={{ animationDelay: '0.25s' }}>
-          <p className="mb-3 text-xs font-medium tracking-[0.06em] text-[#5B7689] dark:text-slate-400">撮影して比較、その場で保存</p>
-          <div className="mx-auto flex w-fit items-center gap-3 rounded-[16px] border border-[#C9E5E0] bg-white px-4 py-1.5 text-xs text-[#5B7689] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-400">
-            <button onClick={() => navigate('/terms')} className="transition-colors hover:text-[#1B3A5C] dark:hover:text-slate-200">
-              利用規約
-            </button>
-            <span className="text-[#C9E5E0] dark:text-slate-600">|</span>
-            <button onClick={() => navigate('/privacy')} className="transition-colors hover:text-[#1B3A5C] dark:hover:text-slate-200">
-              プライバシー
-            </button>
+          <div className="mt-4 flex justify-center gap-4 text-xs font-medium text-[#5B7689] dark:text-slate-400">
+            <button onClick={() => navigate('/terms')}>利用規約</button>
+            <button onClick={() => navigate('/privacy')}>プライバシー</button>
           </div>
         </div>
       </div>

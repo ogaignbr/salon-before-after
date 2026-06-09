@@ -14,6 +14,20 @@ export interface SessionImage {
 
 export type CompareFrameRatio = '3:4' | '9:16' | '4:3';
 export type CompareLayout = 'horizontal' | 'vertical';
+export type CapturePurpose = 'face' | 'skin' | 'eyes' | 'mouth' | 'body' | 'product' | 'video' | 'custom';
+export type CaptureStyle = 'ghost' | 'compare';
+export type CaptureMediaType = 'photo' | 'video';
+export type CaptureOutputKind = 'side-by-side' | 'vertical' | 'overlay' | 'both';
+
+export interface CapturePlan {
+  purpose: CapturePurpose;
+  style: CaptureStyle;
+  mediaType: CaptureMediaType;
+  outputKind: CaptureOutputKind;
+  title: string;
+  beforeLabel: string;
+  afterLabel: string;
+}
 
 export interface CompareImageState {
   id: string;

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import CenterGuide from '../components/CenterGuide';
 import { useCamera } from '../hooks/useCamera';
 import { useVideoRecorder } from '../hooks/useVideoRecorder';
 import { shareOrDownloadImage, shareOrDownloadVideo } from '../lib/imageProcessor';
@@ -12,8 +13,8 @@ function formatTime(s: number) {
 
 export default function CaptureBeforePage() {
   const navigate = useNavigate();
-  const { videoRef, streamRef, isReady, error, start, stop, capture, switchCamera, facingMode } = useCamera();
-  const { isRecording, elapsedSeconds, recordedBlob, recordedUrl, startRecording, stopRecording, clearRecording } = useVideoRecorder(streamRef.current);
+  const { videoRef, stream, isReady, error, start, stop, capture, switchCamera, facingMode } = useCamera();
+  const { isRecording, elapsedSeconds, recordedBlob, recordedUrl, startRecording, stopRecording, clearRecording } = useVideoRecorder(stream);
 
   const [flash, setFlash] = useState(false);
   const [captured, setCaptured] = useState<Blob | null>(null);
@@ -122,9 +123,15 @@ export default function CaptureBeforePage() {
         >
           {/* Photo preview */}
           {mode === 'photo' && captured && previewUrl ? (
-            <img src={previewUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <>
+              <img src={previewUrl} alt="" className="absolute inset-0 h-full w-full object-contain" />
+              <CenterGuide />
+            </>
           ) : /* Video preview */ mode === 'video' && recordedUrl ? (
-            <video src={recordedUrl} className="absolute inset-0 h-full w-full object-cover" controls playsInline />
+            <>
+              <video src={recordedUrl} className="absolute inset-0 h-full w-full object-contain" controls playsInline />
+              <CenterGuide />
+            </>
           ) : (
             <>
               <video
@@ -147,6 +154,7 @@ export default function CaptureBeforePage() {
                   }}
                 />
               )}
+              <CenterGuide />
               {/* Recording indicator */}
               {isRecording && (
                 <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 backdrop-blur">

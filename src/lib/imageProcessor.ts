@@ -35,6 +35,7 @@ export interface ComparisonOptions {
   firstEnd?: number;
   secondStart?: number;
   secondEnd?: number;
+  includeCenterLine?: boolean;
 }
 
 export async function createComparisonImage(
@@ -181,6 +182,63 @@ export async function createComparisonImage(
     };
     drawGridInArea(firstArea);
     drawGridInArea(secondArea);
+  }
+
+  if (options.includeCenterLine) {
+    drawCenterLinesInArea(ctx, firstArea);
+    drawCenterLinesInArea(ctx, secondArea);
+  }
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.92);
+  });
+}
+
+export interface OverlayComparisonOptions {
+  ratio?: string;
+  beforeScale: number;
+  beforeOffsetX: number;
+  beforeOffsetY: number;
+  afterScale: number;
+  afterOffsetX: number;
+  afterOffsetY: number;
+  ghostOpacity: number;
+  includeCenterLine?: boolean;
+}
+
+export async function createOverlayComparisonImage(
+  beforeBlob: Blob,
+  afterBlob: Blob,
+  options: OverlayComparisonOptions,
+): Promise<Blob> {
+  const [beforeUrl, afterUrl] = await Promise.all([
+    blobToDataURL(beforeBlob),
+    blobToDataURL(afterBlob),
+  ]);
+  const [beforeImg, afterImg] = await Promise.all([
+    loadImage(beforeUrl),
+    loadImage(afterUrl),
+  ]);
+
+  const aspectRatio = RATIO_VALUES[options.ratio ?? '3:4'] ?? 3 / 4;
+  const baseSize = 1080;
+  const totalW = baseSize;
+  const totalH = aspectRatio >= 1 ? Math.round(baseSize / aspectRatio) : Math.round(baseSize / aspectRatio);
+  const canvas = document.createElement('canvas');
+  canvas.width = totalW;
+  canvas.height = totalH;
+  const ctx = canvas.getContext('2d')!;
+  const area = { x: 0, y: 0, w: totalW, h: totalH };
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, totalW, totalH);
+  drawImageContain(ctx, afterImg, area, options.afterScale, options.afterOffsetX, options.afterOffsetY, totalW);
+  ctx.globalAlpha = Math.max(0.1, Math.min(0.9, options.ghostOpacity));
+  drawImageContain(ctx, beforeImg, area, options.beforeScale, options.beforeOffsetX, options.beforeOffsetY, totalW);
+  ctx.globalAlpha = 1;
+
+  if (options.includeCenterLine) {
+    drawCenterLinesInArea(ctx, area);
   }
 
   return new Promise((resolve) => {
@@ -387,6 +445,10 @@ export async function createComparisonVideo(
         drawGridInArea(firstArea);
         drawGridInArea(secondArea);
       }
+      if (options.includeCenterLine) {
+        drawCenterLinesInArea(ctx, firstArea);
+        drawCenterLinesInArea(ctx, secondArea);
+      }
       if (borderRadius > 0 && borderEnabled) {
         ctx.restore();
       }
@@ -490,4 +552,63 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     img.onerror = reject;
     img.src = src;
   });
+}
+
+function drawImageContain(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  area: { x: number; y: number; w: number; h: number },
+  scale: number,
+  offsetX: number,
+  offsetY: number,
+  totalW: number,
+) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(area.x, area.y, area.w, area.h);
+  ctx.clip();
+
+  const imgAspect = img.width / img.height;
+  const cellAspect = area.w / area.h;
+  let drawW: number, drawH: number;
+  if (imgAspect > cellAspect) {
+    drawW = area.w;
+    drawH = area.w / imgAspect;
+  } else {
+    drawH = area.h;
+    drawW = area.h * imgAspect;
+  }
+
+  const scaleRatio = totalW / (window.innerWidth || 420);
+  const cx = area.x + area.w / 2 + offsetX * scaleRatio;
+  const cy = area.y + area.h / 2 + offsetY * scaleRatio;
+  drawW *= scale;
+  drawH *= scale;
+
+  ctx.drawImage(img, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+  ctx.restore();
+}
+
+function drawCenterLinesInArea(
+  ctx: CanvasRenderingContext2D,
+  area: { x: number; y: number; w: number; h: number },
+) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(area.x, area.y, area.w, area.h);
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(239, 68, 68, 0.92)';
+  ctx.lineWidth = Math.max(6, Math.round(area.w * 0.006));
+  ctx.lineCap = 'round';
+  ctx.shadowColor = 'rgba(239, 68, 68, 0.5)';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.moveTo(area.x + area.w / 2, area.y);
+  ctx.lineTo(area.x + area.w / 2, area.y + area.h);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(area.x, area.y + area.h / 2);
+  ctx.lineTo(area.x + area.w, area.y + area.h / 2);
+  ctx.stroke();
+  ctx.restore();
 }

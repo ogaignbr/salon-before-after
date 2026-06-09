@@ -3,6 +3,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 export function useCamera() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
@@ -39,6 +40,7 @@ export function useCamera() {
       }
 
       streamRef.current = stream;
+      setStream(stream);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
@@ -57,6 +59,7 @@ export function useCamera() {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
+    setStream(null);
     setIsReady(false);
   }, []);
 
@@ -100,5 +103,5 @@ export function useCamera() {
     return () => stop();
   }, [stop]);
 
-  return { videoRef, streamRef, isReady, error, start, stop, capture, switchCamera, facingMode };
+  return { videoRef, streamRef, stream, isReady, error, start, stop, capture, switchCamera, facingMode };
 }
